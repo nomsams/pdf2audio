@@ -3,460 +3,382 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader Pro X — Neural Audiobook Workstation</title>
+    <title>VibeReader v7.0 — Galactic Edition</title>
     
     <!-- ==========================================
-         CORE DEPENDENCIES (CDN)
+         CORE DEPENDENCIES (Strict Versioning)
     ========================================== -->
-    <!-- PDF Processing -->
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-    <!-- OCR Engine -->
+    <!-- PDF.js 3.11.174 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Tesseract 5 -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- Neural Inference (ONNX) -->
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
-    <!-- Audio Encoding -->
+    <!-- ONNX Runtime Web 1.18.0 (STABLE) -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+    <!-- LameJS -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-    <!-- Metadata Tagging -->
+    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
-    <!-- Icons -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* ==========================================
-           PRO UI DESIGN SYSTEM (Cyberpunk/Dashboard)
-        ========================================== */
         :root {
-            --bg-dark: #050505;
-            --bg-panel: #0f0f11;
-            --bg-panel-light: #18181b;
+            --bg-dark: #030304;
+            --bg-panel: #0e0e10;
+            --bg-panel-light: #161618;
             --border: #27272a;
-            --border-hover: #3f3f46;
-            
-            --primary: #6366f1; /* Indigo */
-            --primary-glow: rgba(99, 102, 241, 0.4);
-            --accent: #ec4899; /* Pink */
-            
+            --primary: #8b5cf6; /* Violet */
+            --primary-glow: rgba(139, 92, 246, 0.3);
+            --accent: #06b6d4; /* Cyan */
             --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
-            
+            --text-muted: #71717a;
             --success: #10b981;
-            --warning: #f59e0b;
             --danger: #ef4444;
-            
-            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --warning: #f59e0b;
+            --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+            --font-ui: 'Inter', system-ui, sans-serif;
         }
 
-        * { box-sizing: border-box; outline: none; scrollbar-width: thin; scrollbar-color: var(--border) var(--bg-panel); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-panel); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
-
+        * { box-sizing: border-box; outline: none; }
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: var(--font-ui);
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            background: var(--bg-dark); color: var(--text-main);
+            font-family: var(--font-ui); margin: 0; height: 100vh;
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
         /* --- HEADER --- */
         header {
-            height: 56px;
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
+            height: 54px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
             z-index: 50;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-
         .brand {
-            font-weight: 900;
-            font-size: 1.2rem;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-weight: 900; font-size: 1.2rem; letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             display: flex; align-items: center; gap: 10px;
         }
-        .brand-badge {
-            font-size: 0.6rem; background: var(--border); color: var(--text-muted);
-            padding: 2px 6px; border-radius: 4px; font-weight: 600; letter-spacing: 1px;
-        }
-
         .toolbar { display: flex; gap: 10px; }
 
         /* --- BUTTONS --- */
         .btn {
-            background: var(--bg-panel-light);
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex; align-items: center; gap: 8px;
-            transition: all 0.2s ease;
+            background: var(--bg-panel-light); border: 1px solid var(--border);
+            color: var(--text-main); padding: 8px 14px; border-radius: 6px;
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
         }
-        .btn:hover { background: var(--border); border-color: var(--text-muted); transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-        .btn-primary { background: var(--primary); border-color: var(--primary); color: white; box-shadow: 0 0 15px var(--primary-glow); }
-        .btn-primary:hover { background: #4f46e5; border-color: #4f46e5; }
-        .btn-danger { border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn:hover { background: #222; border-color: #444; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #7c3aed; box-shadow: 0 0 15px var(--primary-glow); }
+        .btn-sm { padding: 4px 8px; font-size: 0.7rem; }
 
-        /* --- LAYOUT GRID --- */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr 380px; /* Sidebar | PDF Viewer | Text/AI Editor */
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* --- SIDEBAR (Left) --- */
-        .sidebar {
-            background: var(--bg-panel);
-            border-right: 1px solid var(--border);
-            display: flex; flex-direction: column;
-            overflow-y: auto;
-        }
-        .panel-section { padding: 20px; border-bottom: 1px solid var(--border); }
+        /* --- LAYOUT --- */
+        .main-grid { display: grid; grid-template-columns: 340px 1fr 400px; flex: 1; overflow: hidden; }
+        
+        /* --- SIDEBAR --- */
+        .sidebar { background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+        .panel-section { padding: 15px; border-bottom: 1px solid var(--border); }
         .panel-header {
-            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px;
-            color: var(--text-muted); font-weight: 800; margin-bottom: 15px;
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--text-muted); font-weight: 800; margin-bottom: 10px;
             display: flex; justify-content: space-between; align-items: center;
         }
 
-        /* Status Indicators */
-        .status-card {
+        /* --- MODEL MANAGER --- */
+        .model-card {
             background: #000; border: 1px solid var(--border); border-radius: 8px;
-            padding: 12px; font-family: var(--font-mono); font-size: 0.75rem;
-            display: flex; flex-direction: column; gap: 8px;
+            padding: 12px; font-size: 0.8rem;
         }
-        .status-row { display: flex; justify-content: space-between; align-items: center; }
-        .led { width: 8px; height: 8px; border-radius: 50%; background: #333; box-shadow: 0 0 5px rgba(0,0,0,0.5); transition: 0.3s; }
-        .led.on { background: var(--success); box-shadow: 0 0 10px var(--success); }
-        .led.busy { background: var(--warning); animation: pulse 1s infinite; }
-        .led.err { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .led { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.3s; }
+        .led.on { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .led.err { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .led.busy { background: var(--warning); animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* Inputs */
-        .input-group { margin-bottom: 10px; }
-        .input-label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px; }
-        .form-control {
+        .drop-zone {
+            border: 1px dashed var(--border); border-radius: 6px; padding: 15px;
+            text-align: center; color: var(--text-muted); font-size: 0.75rem;
+            margin-top: 10px; transition: 0.2s; cursor: pointer;
+        }
+        .drop-zone:hover { border-color: var(--primary); color: var(--text-main); background: rgba(139, 92, 246, 0.05); }
+
+        /* --- INPUTS --- */
+        select, input[type="text"], input[type="password"], textarea {
             width: 100%; background: #000; border: 1px solid var(--border);
             color: var(--text-main); padding: 8px; border-radius: 4px;
-            font-family: var(--font-mono); font-size: 0.8rem; transition: 0.2s;
+            font-family: var(--font-ui); font-size: 0.8rem; margin-bottom: 8px;
         }
-        .form-control:focus { border-color: var(--primary); }
+        select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
-        /* Timeline */
-        .timeline-container { flex: 1; overflow-y: auto; padding: 10px; background: #000; }
-        .timeline-item {
+        /* --- TIMELINE --- */
+        #timeline-list { flex: 1; overflow-y: auto; padding: 10px; background: #050505; }
+        .t-item {
             background: var(--bg-panel-light); border: 1px solid var(--border);
-            border-radius: 6px; padding: 10px; margin-bottom: 8px;
-            cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between;
-            align-items: center;
+            border-radius: 4px; padding: 8px; margin-bottom: 6px; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .timeline-item:hover { border-color: var(--text-muted); }
-        .timeline-item.active { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
-        .t-idx { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
-        .t-dur { font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); }
+        .t-item:hover { border-color: #555; }
+        .t-item.active { border-color: var(--primary); background: rgba(139, 92, 246, 0.1); }
 
-        /* --- PDF VIEWER (Center) --- */
-        .pdf-viewer {
-            background: #0a0a0a;
-            display: flex; flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
+        /* --- PDF VIEWER --- */
+        .pdf-area { background: #000; display: flex; flex-direction: column; position: relative; }
         .pdf-toolbar {
-            height: 40px; background: rgba(0,0,0,0.8); border-bottom: 1px solid var(--border);
+            height: 40px; background: rgba(14,14,16,0.9); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: center; gap: 15px;
-            backdrop-filter: blur(10px); position: absolute; top: 0; width: 100%; z-index: 10;
+            position: absolute; top: 0; width: 100%; z-index: 10; backdrop-filter: blur(5px);
         }
-        .pdf-canvas-container {
-            flex: 1; overflow: auto; display: flex; justify-content: center; padding: 60px 20px 20px 20px;
-        }
-        canvas {
-            box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 4px;
-            max-width: 100%; height: auto;
-        }
+        .pdf-canvas-wrap { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 60px 20px 20px; }
+        canvas { max-width: 100%; box-shadow: 0 0 30px rgba(0,0,0,0.5); border-radius: 4px; }
 
-        /* --- EDITOR (Right) --- */
-        .editor-panel {
-            background: var(--bg-panel); border-left: 1px solid var(--border);
-            display: flex; flex-direction: column;
-        }
-        .editor-toolbar {
-            padding: 10px; border-bottom: 1px solid var(--border);
-            display: flex; gap: 10px; background: var(--bg-panel-light);
-        }
+        /* --- EDITOR --- */
+        .editor-area { background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
         #text-editor {
-            flex: 1; background: #000; color: #d4d4d4; border: none;
-            padding: 20px; font-family: 'Georgia', serif; font-size: 1.1rem;
-            line-height: 1.6; resize: none;
+            flex: 1; background: #080808; border: none; padding: 20px;
+            font-family: 'Georgia', serif; font-size: 1.1rem; line-height: 1.6;
+            color: #d4d4d4; resize: none;
         }
-        #text-editor:focus { outline: none; background: #050505; }
 
-        /* --- FOOTER (Player) --- */
+        /* --- LOGS --- */
+        #log-panel {
+            position: fixed; bottom: 80px; right: 20px; width: 500px; height: 300px;
+            background: rgba(5,5,5,0.95); border: 1px solid var(--border); border-radius: 8px;
+            display: none; flex-direction: column; z-index: 200;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+        }
+        .log-head {
+            padding: 8px 12px; background: var(--bg-panel-light); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .log-body { flex: 1; overflow-y: auto; padding: 10px; font-family: var(--font-mono); font-size: 0.7rem; }
+        .l-row { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; word-break: break-all; }
+        .l-err { color: #ff5555; } .l-warn { color: #fbbf24; } .l-info { color: #10b981; }
+
+        /* --- FOOTER --- */
         footer {
-            height: 80px; background: var(--bg-panel); border-top: 1px solid var(--border);
-            display: grid; grid-template-columns: 300px 1fr 300px; align-items: center;
+            height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border);
+            display: grid; grid-template-columns: 250px 1fr 250px; align-items: center;
             padding: 0 20px; z-index: 100;
         }
-        
-        /* Visualizer */
-        #visualizer { width: 100%; height: 40px; }
-
-        .player-controls { display: flex; justify-content: center; align-items: center; gap: 20px; }
-        .play-btn-large {
-            width: 50px; height: 50px; border-radius: 50%;
-            background: var(--text-main); color: #000; border: none;
-            font-size: 1.5rem; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s;
+        .play-btn {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--text-main);
+            color: #000; border: none; font-size: 1.2rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
         }
-        .play-btn-large:hover { transform: scale(1.1); box-shadow: 0 0 20px rgba(255,255,255,0.3); }
-        .play-btn-large:disabled { background: #333; color: #555; transform: none; box-shadow: none; }
-
-        /* --- LOGS DRAWER --- */
-        #log-drawer {
-            position: fixed; bottom: 80px; right: 20px; width: 500px; height: 300px;
-            background: rgba(0,0,0,0.95); border: 1px solid var(--border); border-radius: 8px;
-            display: none; flex-direction: column; z-index: 200;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
-        }
-        .log-header {
-            padding: 8px 15px; background: var(--bg-panel-light); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold;
-        }
-        .log-content {
-            flex: 1; overflow-y: auto; padding: 10px; font-family: var(--font-mono); font-size: 0.75rem;
-        }
-        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; }
-        .log-info { color: #10b981; }
-        .log-warn { color: #f59e0b; }
-        .log-err { color: #ef4444; }
-
-        /* --- MODAL (Manual Load) --- */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-            z-index: 1000; display: none; align-items: center; justify-content: center;
-        }
-        .modal-box {
-            background: var(--bg-panel); border: 1px solid var(--border); width: 500px;
-            padding: 30px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
+        .play-btn:hover { transform: scale(1.1); background: #fff; }
+        .play-btn:disabled { background: #333; color: #555; transform: none; }
 
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
-    <div class="brand">
-        <i class="fa-solid fa-wave-square"></i> VibeReader <span class="brand-badge">PRO X</span>
-    </div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v7.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
-        <button class="btn" onclick="dom.importInput.click()"><i class="fa-solid fa-upload"></i> Import Project</button>
-        <input type="file" id="importInput" accept=".mp3" hidden>
-        <button class="btn btn-primary" onclick="dom.pdfInput.click()"><i class="fa-solid fa-file-pdf"></i> Open PDF</button>
-        <input type="file" id="pdfInput" accept=".pdf" hidden>
+        <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
+        <input type="file" id="importFile" accept=".mp3" hidden>
+        <button class="btn btn-primary" onclick="dom.pdfFile.click()"><i class="fa-solid fa-file-pdf"></i> Open PDF</button>
+        <input type="file" id="pdfFile" accept=".pdf" hidden>
     </div>
 </header>
 
-<!-- MAIN WORKSPACE -->
 <div class="main-grid">
-    
-    <!-- LEFT SIDEBAR: CONTROLS -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
-        <!-- 1. ENGINE STATUS -->
+        
+        <!-- MODEL MANAGER -->
         <div class="panel-section">
-            <div class="panel-header">Neural Engine Status</div>
-            <div class="status-card">
+            <div class="panel-header">
+                <span>Neural Core</span>
+                <span id="core-status" style="color:var(--warning)">OFFLINE</span>
+            </div>
+            
+            <div class="model-card">
                 <div class="status-row">
-                    <span>Core System</span>
-                    <div id="led-sys" class="led busy"></div>
+                    <span>System Ready</span>
+                    <div id="led-sys" class="led"></div>
                 </div>
                 <div class="status-row">
-                    <span>Model (82M)</span>
+                    <span>Model Loaded</span>
                     <div id="led-model" class="led"></div>
                 </div>
-                <div class="status-row">
-                    <span>Voices</span>
-                    <div id="led-voice" class="led"></div>
+                
+                <div style="margin-top:10px; padding-top:10px; border-top:1px solid #222;">
+                    <label style="font-size:0.7rem; color:var(--text-muted);">Download Source</label>
+                    <select id="model-source" style="margin-bottom:5px;">
+                        <option value="q8">Kokoro 82M (Quantized - 80MB)</option>
+                        <option value="fp16">Kokoro 82M (FP16 - 160MB)</option>
+                    </select>
+                    <button id="btn-init" class="btn btn-primary" style="width:100%; justify-content:center;" onclick="app.initEngine()">
+                        <i class="fa-solid fa-power-off"></i> Initialize System
+                    </button>
+                    <progress id="dl-bar" value="0" max="100" style="width:100%; height:4px; margin-top:5px; display:none;"></progress>
                 </div>
-                <div id="status-text" style="color:var(--text-muted); margin-top:5px;">Initializing...</div>
-                <progress id="dl-progress" value="0" max="100" style="width:100%; height:4px; margin-top:5px; display:none;"></progress>
+
+                <!-- MANUAL DRAG DROP -->
+                <div class="drop-zone" onclick="dom.manualFile.click()" id="drop-zone">
+                    <i class="fa-solid fa-folder-open"></i><br>
+                    Click or Drag .onnx & .json here<br>to load manually
+                </div>
+                <input type="file" id="manualFile" multiple accept=".onnx,.json" hidden>
             </div>
-            <button class="btn btn-danger" style="width:100%; margin-top:10px; font-size:0.7rem;" onclick="app.showManualLoad()">
-                <i class="fa-solid fa-triangle-exclamation"></i> Manual Load Override
-            </button>
         </div>
 
-        <!-- 2. AI SETTINGS -->
+        <!-- AI CLEANING -->
         <div class="panel-section">
-            <div class="panel-header">AI Text Refinement</div>
-            <div class="input-group">
-                <label class="input-label">Provider</label>
-                <select id="ai-provider" class="form-control" onchange="app.updateAiModels()">
-                    <option value="groq">Groq (Fastest)</option>
-                    <option value="openai">OpenAI (Best Quality)</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label class="input-label">API Key</label>
-                <input type="password" id="ai-key" class="form-control" placeholder="sk-..." onchange="app.saveSettings()">
-            </div>
-            <div class="input-group">
-                <label class="input-label">Model</label>
-                <select id="ai-model" class="form-control"></select>
-            </div>
-            <div class="input-group">
-                <label class="input-label">System Prompt</label>
-                <textarea id="ai-prompt" class="form-control" rows="3">Fix OCR errors. Remove headers/footers. Keep narrative flow.</textarea>
-            </div>
+            <div class="panel-header">AI Refinement</div>
+            <select id="ai-provider" onchange="app.updateAiModels()">
+                <option value="groq">Groq</option>
+                <option value="openai">OpenAI</option>
+            </select>
+            <input type="password" id="ai-key" placeholder="API Key (sk-...)" onchange="app.saveSettings()">
+            <select id="ai-model"></select>
+            <textarea id="ai-prompt" rows="2" placeholder="System Prompt...">Fix OCR errors.</textarea>
         </div>
 
-        <!-- 3. TIMELINE -->
+        <!-- TIMELINE -->
         <div class="panel-section" style="flex:1; display:flex; flex-direction:column; border-bottom:none;">
             <div class="panel-header">
-                <span>Audio Timeline</span>
-                <span id="total-duration">00:00</span>
+                <span>Timeline</span>
+                <span id="total-time">00:00</span>
             </div>
-            <div id="timeline-list" class="timeline-container"></div>
-            <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="app.exportAudiobook()">
+            <div id="timeline-list"></div>
+            <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="app.exportMP3()">
                 <i class="fa-solid fa-floppy-disk"></i> Export MP3
             </button>
         </div>
     </div>
 
-    <!-- CENTER: PDF VIEWER -->
-    <div class="pdf-viewer">
+    <!-- PDF VIEWER -->
+    <div class="pdf-area">
         <div class="pdf-toolbar">
-            <button class="btn" onclick="app.prevPage()"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="btn btn-sm" onclick="app.changePage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
             <span id="page-num" style="font-family:var(--font-mono); font-size:0.9rem;">Page 1</span>
-            <button class="btn" onclick="app.nextPage()"><i class="fa-solid fa-chevron-right"></i></button>
-            <div style="width:1px; height:20px; background:rgba(255,255,255,0.2); margin:0 10px;"></div>
-            <button class="btn" onclick="app.extractCurrentPage()"><i class="fa-solid fa-bolt"></i> Extract Text</button>
+            <button class="btn btn-sm" onclick="app.changePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            <div style="width:1px; height:20px; background:rgba(255,255,255,0.1); margin:0 10px;"></div>
+            <button class="btn btn-sm" onclick="app.extractText()"><i class="fa-solid fa-bolt"></i> Extract</button>
         </div>
-        <div class="pdf-canvas-container">
+        <div class="pdf-canvas-wrap">
             <canvas id="pdf-canvas"></canvas>
         </div>
     </div>
 
-    <!-- RIGHT: EDITOR -->
-    <div class="editor-panel">
-        <div class="editor-toolbar">
-            <select id="voice-select" class="form-control" style="width:150px;"><option>Loading...</option></select>
-            <button class="btn" onclick="app.runAiClean()"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Clean</button>
+    <!-- EDITOR -->
+    <div class="editor-area">
+        <div style="padding:10px; border-bottom:1px solid var(--border); display:flex; gap:10px; background:var(--bg-panel-light);">
+            <select id="voice-sel" style="width:150px; margin:0;"><option>Loading...</option></select>
+            <button class="btn btn-sm" onclick="app.runAi()"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Clean</button>
             <div style="flex:1"></div>
-            <button class="btn btn-primary" onclick="app.generateAudio()"><i class="fa-solid fa-play"></i> Generate</button>
+            <button class="btn btn-sm btn-primary" onclick="app.generate()"><i class="fa-solid fa-play"></i> Generate</button>
         </div>
-        <textarea id="text-editor" placeholder="Extracted text will appear here. You can edit it manually before generating audio."></textarea>
+        <textarea id="text-editor" placeholder="Extracted text appears here..."></textarea>
     </div>
-
 </div>
 
-<!-- FOOTER PLAYER -->
-<footer>
-    <div style="padding-right:20px; border-right:1px solid var(--border);">
-        <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px;">AUDIO VISUALIZER</div>
-        <canvas id="visualizer"></canvas>
+<!-- LOGS -->
+<div id="log-panel">
+    <div class="log-head">
+        <span>SYSTEM LOGS</span>
+        <div>
+            <button class="btn btn-sm" onclick="app.copyLogs()">Copy</button>
+            <button class="btn btn-sm" onclick="app.toggleLogs()">X</button>
+        </div>
     </div>
-    
-    <div class="player-controls">
-        <button class="btn" onclick="app.prevChunk()"><i class="fa-solid fa-backward-step"></i></button>
-        <button id="play-btn" class="play-btn-large" onclick="app.togglePlayback()" disabled>
-            <i class="fa-solid fa-play"></i>
-        </button>
-        <button class="btn" onclick="app.nextChunk()"><i class="fa-solid fa-forward-step"></i></button>
-    </div>
+    <div id="log-body" class="log-body"></div>
+</div>
 
-    <div style="padding-left:20px; border-left:1px solid var(--border); text-align:right;">
-        <div style="font-size:0.8rem; font-weight:bold; color:var(--success);">ONLINE</div>
-        <div style="font-size:0.7rem; color:var(--text-muted);">Kokoro 82M Quantized</div>
+<!-- FOOTER -->
+<footer>
+    <div style="font-size:0.8rem; color:var(--text-muted);">
+        <i class="fa-solid fa-wave-square"></i> <span id="status-msg">Idle</span>
+    </div>
+    <div style="display:flex; gap:20px; justify-content:center;">
+        <button class="btn" onclick="app.prevChunk()"><i class="fa-solid fa-backward"></i></button>
+        <button id="btn-play" class="play-btn" onclick="app.togglePlay()" disabled><i class="fa-solid fa-play"></i></button>
+        <button class="btn" onclick="app.nextChunk()"><i class="fa-solid fa-forward"></i></button>
+    </div>
+    <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);">
+        ONNX Runtime 1.18.0
     </div>
 </footer>
-
-<!-- LOG DRAWER -->
-<div id="log-drawer">
-    <div class="log-header">
-        <span>SYSTEM LOGS</span>
-        <button style="background:none; border:none; color:#fff; cursor:pointer;" onclick="app.toggleLogs()">X</button>
-    </div>
-    <div id="log-content" class="log-content"></div>
-</div>
-
-<!-- MANUAL LOAD MODAL -->
-<div id="manual-modal" class="modal-overlay">
-    <div class="modal-box">
-        <h2 style="margin-top:0;">Manual Model Load</h2>
-        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
-            If the automatic download fails due to network restrictions, please download the files manually and select them here.
-        </p>
-        <ul style="font-size:0.85rem; color:var(--accent);">
-            <li>model_q8.onnx (or similar)</li>
-            <li>voices.json</li>
-        </ul>
-        <input type="file" id="manualInput" multiple accept=".onnx,.json" class="form-control" style="margin:20px 0;">
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-            <button class="btn" onclick="document.getElementById('manual-modal').style.display='none'">Cancel</button>
-            <button class="btn btn-primary" onclick="app.processManualLoad()">Load Files</button>
-        </div>
-    </div>
-</div>
 
 <script>
 /**
  * ============================================================================
- * VIBEREADER PRO X - CORE ENGINE
+ * VIBEREADER v7.0 - GALACTIC CORE
  * ============================================================================
  */
 
-// --- 0. GLOBAL CONFIG & WASM FIX ---
-// Explicitly set WASM paths to jsDelivr to prevent "undefined" worker errors
-ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/";
+// 1. CRITICAL CONFIGURATION
+// Explicitly point to the CDN folder containing .wasm files for version 1.18.0
+ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
+// Force single thread to avoid SharedArrayBuffer issues on some hosts
+ort.env.wasm.numThreads = 1;
 
 const CONFIG = {
-    modelUrl: "https://dl.dropboxusercontent.com/scl/fi/dro5xmkt2arvesxhj2a14/model_q8f16.onnx?rlkey=8v7d17jisunatozughonagimy&st=8jqup808&dl=1",
-    voicesUrl: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderProX",
+    models: {
+        q8: "https://dl.dropboxusercontent.com/scl/fi/dro5xmkt2arvesxhj2a14/model_q8f16.onnx?rlkey=8v7d17jisunatozughonagimy&st=8jqup808&dl=1",
+        fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx" // Alternative
+    },
+    voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
+    dbName: "VibeReaderGalactic",
     storeName: "assets"
 };
 
-// PDF.js Worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+// PDF Worker Setup
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// --- 1. UTILITIES (Logger, DB) ---
+// 2. DOM ELEMENTS
+const dom = {
+    pdfFile: document.getElementById('pdfFile'),
+    importFile: document.getElementById('importFile'),
+    manualFile: document.getElementById('manualFile'),
+    dropZone: document.getElementById('drop-zone'),
+    canvas: document.getElementById('pdf-canvas'),
+    editor: document.getElementById('text-editor'),
+    timeline: document.getElementById('timeline-list'),
+    logBody: document.getElementById('log-body'),
+    dlBar: document.getElementById('dl-bar'),
+    btnInit: document.getElementById('btn-init'),
+    btnPlay: document.getElementById('btn-play'),
+    ledSys: document.getElementById('led-sys'),
+    ledModel: document.getElementById('led-model'),
+    coreStatus: document.getElementById('core-status'),
+    voiceSel: document.getElementById('voice-sel')
+};
+
+// 3. LOGGER (Safe Serialization)
 const logger = {
-    log: (msg) => logger.write(msg, 'log-info'),
-    warn: (msg) => logger.write(msg, 'log-warn'),
+    logs: [],
+    log: (msg) => logger.write(msg, 'l-info'),
+    warn: (msg) => logger.write(msg, 'l-warn'),
     error: (msg) => {
-        logger.write(msg, 'log-err');
-        app.toggleLogs(true); // Auto-open on error
+        // Handle objects/errors safely
+        let text = msg;
+        if (typeof msg === 'object') {
+            try { text = JSON.stringify(msg, Object.getOwnPropertyNames(msg)); } 
+            catch(e) { text = "Unknown Error Object"; }
+        }
+        logger.write(text, 'l-err');
+        app.toggleLogs(true);
     },
     write: (msg, cls) => {
-        const el = document.getElementById('log-content');
+        const ts = new Date().toLocaleTimeString();
+        const line = `[${ts}] ${msg}`;
+        logger.logs.push(line);
+        
         const div = document.createElement('div');
-        div.className = `log-entry ${cls}`;
-        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        el.appendChild(div);
-        el.scrollTop = el.scrollHeight;
+        div.className = `l-row ${cls}`;
+        div.innerText = line;
+        dom.logBody.appendChild(div);
+        dom.logBody.scrollTop = dom.logBody.scrollHeight;
         console.log(msg);
     }
 };
 
+// 4. DATABASE
 const db = {
     open: () => new Promise((resolve, reject) => {
         const r = indexedDB.open(CONFIG.dbName, 1);
@@ -495,102 +417,80 @@ const db = {
     }
 };
 
-// --- 2. AUDIO ENGINE (Kokoro + Visualizer) ---
+// 5. AUDIO ENGINE
 class AudioEngine {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.analyser = this.ctx.createAnalyser();
-        this.analyser.connect(this.ctx.destination);
         this.session = null;
         this.voices = null;
-        this.isReady = false;
-        
-        // Visualizer Loop
-        this.drawVisualizer();
-    }
-
-    drawVisualizer() {
-        const canvas = document.getElementById('visualizer');
-        const ctx = canvas.getContext('2d');
-        const bufferLength = this.analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        
-        const draw = () => {
-            requestAnimationFrame(draw);
-            this.analyser.getByteFrequencyData(dataArray);
-            
-            ctx.fillStyle = '#0f0f11'; // Match panel bg
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let barHeight;
-            let x = 0;
-            
-            for(let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
-                ctx.fillStyle = `rgb(${barHeight + 100}, 102, 241)`; // Indigo tint
-                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                x += barWidth + 1;
-            }
-        };
-        draw();
     }
 
     async init() {
-        logger.log("Engine: Initializing...");
-        document.getElementById('led-sys').className = "led on";
+        logger.log("Engine: Starting Initialization Sequence...");
+        dom.ledSys.className = "led busy";
+        dom.coreStatus.innerText = "BOOTING...";
         
         try {
-            // 1. Voices
+            // 1. Check/Download Voices
             let vBlob = await db.get(CONFIG.storeName, 'voices.json');
             if(!vBlob) {
-                logger.log("Download: Voices...");
-                document.getElementById('dl-progress').style.display = 'block';
-                vBlob = await this.download(CONFIG.voicesUrl);
+                logger.log("Engine: Downloading Voices...");
+                dom.dlBar.style.display = 'block';
+                vBlob = await this.download(CONFIG.voices);
                 await db.put(CONFIG.storeName, 'voices.json', vBlob);
             }
             this.voices = JSON.parse(await vBlob.text());
-            document.getElementById('led-voice').className = "led on";
-
-            // 2. Model
+            
+            // 2. Check/Download Model
             let mBlob = await db.get(CONFIG.storeName, 'model.onnx');
             if(!mBlob) {
-                logger.log("Download: Model (82M)...");
-                mBlob = await this.download(CONFIG.modelUrl);
+                const source = document.getElementById('model-source').value;
+                const url = CONFIG.models[source];
+                logger.log(`Engine: Downloading Model (${source})...`);
+                dom.dlBar.style.display = 'block';
+                mBlob = await this.download(url);
                 await db.put(CONFIG.storeName, 'model.onnx', mBlob);
             }
-            document.getElementById('dl-progress').style.display = 'none';
+            dom.dlBar.style.display = 'none';
 
-            // 3. Compile
-            logger.log("Engine: Compiling ONNX Graph (WASM)...");
-            document.getElementById('status-text').innerText = "Compiling Graph...";
-            
+            // 3. Compile ONNX
+            logger.log("Engine: Compiling WASM Graph...");
             const mBuffer = await mBlob.arrayBuffer();
-            this.session = await ort.InferenceSession.create(mBuffer, {
-                executionProviders: ['wasm'],
-                graphOptimizationLevel: 'all'
-            });
+            
+            // CRITICAL: Catch specific ONNX errors
+            try {
+                this.session = await ort.InferenceSession.create(mBuffer, {
+                    executionProviders: ['wasm'],
+                    graphOptimizationLevel: 'all'
+                });
+            } catch (onnxErr) {
+                throw new Error(`ONNX Create Failed: ${onnxErr.message}`);
+            }
 
-            this.isReady = true;
-            document.getElementById('led-model').className = "led on";
-            document.getElementById('status-text').innerText = "System Ready";
-            document.getElementById('play-btn').disabled = false;
+            // Success
+            dom.ledSys.className = "led on";
+            dom.ledModel.className = "led on";
+            dom.coreStatus.innerText = "ONLINE";
+            dom.coreStatus.style.color = "var(--success)";
+            dom.btnInit.style.display = 'none'; // Hide init button
+            dom.btnPlay.disabled = false;
             
             this.populateVoices();
-            logger.log("Engine: Online.");
+            logger.log("Engine: System Fully Operational.");
             return true;
 
         } catch(e) {
-            logger.error(`Init Failed: ${e.message}`);
-            document.getElementById('led-sys').className = "led err";
-            document.getElementById('status-text').innerText = "System Failure";
-            throw e;
+            dom.ledSys.className = "led err";
+            dom.coreStatus.innerText = "ERROR";
+            dom.coreStatus.style.color = "var(--danger)";
+            logger.error(e);
+            alert("Initialization Failed. Check Logs.");
         }
     }
 
     async download(url) {
         const resp = await fetch(url);
-        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if(!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
         const reader = resp.body.getReader();
         const total = +resp.headers.get('Content-Length');
         let loaded = 0;
@@ -600,20 +500,19 @@ class AudioEngine {
             if(done) break;
             chunks.push(value);
             loaded += value.length;
-            if(total) document.getElementById('dl-progress').value = (loaded/total)*100;
+            if(total) dom.dlBar.value = (loaded/total)*100;
         }
         return new Blob(chunks);
     }
 
     populateVoices() {
-        const sel = document.getElementById('voice-select');
-        sel.innerHTML = '';
+        dom.voiceSel.innerHTML = '';
         Object.keys(this.voices).forEach(k => {
             if(k.match(/^[ab]/)) {
                 const opt = document.createElement('option');
-                opt.value = k; opt.innerText = `Voice: ${k}`;
+                opt.value = k; opt.innerText = k;
                 if(k==='af') opt.selected = true;
-                sel.appendChild(opt);
+                dom.voiceSel.appendChild(opt);
             }
         });
     }
@@ -621,7 +520,7 @@ class AudioEngine {
     async generate(text, voice) {
         if(!this.session) throw new Error("Session not ready");
         
-        // Robust Tokenizer
+        // Tokenizer
         const map = {
             ' ':0, '.':1, ',':2, '!':3, '?':4, "'":5, '-':6,
             'a':10, 'b':11, 'c':12, 'd':13, 'e':14, 'f':15, 'g':16, 'h':17, 'i':18, 'j':19,
@@ -643,60 +542,56 @@ class AudioEngine {
         buf.getChannelData(0).set(data);
         const src = this.ctx.createBufferSource();
         src.buffer = buf;
-        src.connect(this.analyser); // Connect to visualizer
+        src.connect(this.ctx.destination);
         src.start();
         return new Promise(r => src.onended = r);
     }
 }
 
-// --- 3. APP CONTROLLER ---
+// 6. APP CONTROLLER
 class App {
     constructor() {
         this.engine = new AudioEngine();
         this.pdfDoc = null;
         this.pageNum = 1;
-        this.state = { timeline: [], currentIdx: 0, isPlaying: false, pdfName: "Untitled" };
+        this.state = { timeline: [], idx: 0, playing: false, pdfName: "Untitled" };
+
+        // Bind Events
+        dom.pdfFile.onchange = (e) => this.loadPdf(e.target);
+        dom.manualFile.onchange = (e) => this.manualLoad(e.target);
+        dom.importFile.onchange = (e) => this.importProj(e.target);
         
-        // DOM Refs
-        this.dom = {
-            pdfInput: document.getElementById('pdfInput'),
-            importInput: document.getElementById('importInput'),
-            manualInput: document.getElementById('manualInput'),
-            canvas: document.getElementById('pdf-canvas'),
-            editor: document.getElementById('text-editor'),
-            timeline: document.getElementById('timeline-list'),
-            playBtn: document.getElementById('play-btn'),
-            aiKey: document.getElementById('ai-key')
+        // Drag Drop
+        dom.dropZone.ondragover = (e) => { e.preventDefault(); dom.dropZone.style.borderColor = 'var(--primary)'; };
+        dom.dropZone.ondragleave = () => { dom.dropZone.style.borderColor = 'var(--border)'; };
+        dom.dropZone.ondrop = (e) => {
+            e.preventDefault();
+            this.manualLoad({ files: e.dataTransfer.files });
         };
 
-        // Init
-        this.dom.pdfInput.onchange = (e) => this.loadPdf(e.target.files[0]);
-        this.dom.importInput.onchange = (e) => this.importProject(e.target.files[0]);
-        
         // Load Settings
         const savedKey = localStorage.getItem('vibe_ai_key');
-        if(savedKey) this.dom.aiKey.value = savedKey;
+        if(savedKey) document.getElementById('ai-key').value = savedKey;
         this.updateAiModels();
-
-        // Start Engine
-        this.engine.init().catch(() => {
-            // If auto-init fails, user can use manual load button
-        });
         
-        this.loadTimelineFromDB();
+        // Check DB for existing models to update UI
+        this.checkDbStatus();
+        this.loadTimeline();
     }
 
-    // --- UI HELPERS ---
-    toggleLogs(forceOpen = false) {
-        const el = document.getElementById('log-drawer');
-        if(forceOpen) el.style.display = 'flex';
-        else el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
+    async checkDbStatus() {
+        const m = await db.get(CONFIG.storeName, 'model.onnx');
+        if(m) {
+            dom.ledModel.className = "led on";
+            dom.btnInit.innerHTML = '<i class="fa-solid fa-power-off"></i> Boot System (Cached)';
+        }
     }
 
-    showManualLoad() { document.getElementById('manual-modal').style.display = 'flex'; }
+    initEngine() { this.engine.init(); }
 
-    async processManualLoad() {
-        const files = Array.from(document.getElementById('manualInput').files);
+    // --- MANUAL LOAD ---
+    async manualLoad(input) {
+        const files = Array.from(input.files);
         const onnx = files.find(f => f.name.toLowerCase().endsWith('.onnx'));
         const json = files.find(f => f.name.toLowerCase().endsWith('.json'));
         
@@ -704,119 +599,131 @@ class App {
             logger.log("Manual: Saving files to DB...");
             await db.put(CONFIG.storeName, 'model.onnx', onnx);
             await db.put(CONFIG.storeName, 'voices.json', json);
-            document.getElementById('manual-modal').style.display = 'none';
+            logger.log("Manual: Saved. Initializing...");
             this.engine.init();
         } else {
             alert("Please select BOTH .onnx and .json files.");
         }
+        // Reset input
+        if(input.value) input.value = null;
     }
 
-    // --- PDF HANDLING ---
-    async loadPdf(file) {
+    // --- PDF ---
+    async loadPdf(input) {
+        const file = input.files[0];
         if(!file) return;
+        
+        // Reset input so same file can be selected again
+        input.value = null;
+        
         this.state.pdfName = file.name.replace('.pdf','');
         logger.log(`PDF: Loading ${file.name}...`);
         
-        const buf = await file.arrayBuffer();
-        this.pdfDoc = await pdfjsLib.getDocument(buf).promise;
-        this.pageNum = 1;
-        this.renderPage();
+        try {
+            const buf = await file.arrayBuffer();
+            this.pdfDoc = await pdfjsLib.getDocument(buf).promise;
+            this.pageNum = 1;
+            this.renderPage();
+        } catch(e) {
+            logger.error(`PDF Error: ${e.message}`);
+            alert("Failed to load PDF.");
+        }
     }
 
     async renderPage() {
         if(!this.pdfDoc) return;
         const page = await this.pdfDoc.getPage(this.pageNum);
         const vp = page.getViewport({scale: 1.5});
-        this.dom.canvas.width = vp.width;
-        this.dom.canvas.height = vp.height;
-        await page.render({canvasContext: this.dom.canvas.getContext('2d'), viewport: vp}).promise;
+        dom.canvas.width = vp.width; dom.canvas.height = vp.height;
+        await page.render({canvasContext: dom.canvas.getContext('2d'), viewport: vp}).promise;
         document.getElementById('page-num').innerText = `Page ${this.pageNum} / ${this.pdfDoc.numPages}`;
     }
 
-    prevPage() { if(this.pageNum > 1) { this.pageNum--; this.renderPage(); } }
-    nextPage() { if(this.pdfDoc && this.pageNum < this.pdfDoc.numPages) { this.pageNum++; this.renderPage(); } }
-
-    async extractCurrentPage() {
-        logger.log("OCR: Extracting text...");
-        const worker = await Tesseract.createWorker('eng');
-        const { data: { text } } = await worker.recognize(this.dom.canvas);
-        await worker.terminate();
-        this.dom.editor.value = text;
-        logger.log("OCR: Done.");
-    }
-
-    // --- AI CLEANING ---
-    updateAiModels() {
-        const provider = document.getElementById('ai-provider').value;
-        const sel = document.getElementById('ai-model');
-        sel.innerHTML = '';
-        const models = provider === 'groq' 
-            ? [{id:'llama3-70b-8192', n:'Llama 3 (70B)'}, {id:'mixtral-8x7b-32768', n:'Mixtral'}]
-            : [{id:'gpt-4o', n:'GPT-4o'}, {id:'gpt-3.5-turbo', n:'GPT-3.5'}];
-        
-        models.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id; opt.innerText = m.n;
-            sel.appendChild(opt);
-        });
-    }
-
-    saveSettings() { localStorage.setItem('vibe_ai_key', this.dom.aiKey.value); }
-
-    async runAiClean() {
-        const key = this.dom.aiKey.value;
-        if(!key) return alert("Please enter an API Key first.");
-        
-        const text = this.dom.editor.value;
-        if(!text) return alert("No text to clean.");
-
-        const provider = document.getElementById('ai-provider').value;
-        const model = document.getElementById('ai-model').value;
-        const sysPrompt = document.getElementById('ai-prompt').value;
-
-        logger.log(`AI: Sending to ${provider}...`);
-        this.dom.editor.disabled = true;
-
-        try {
-            const messages = [{role:"system", content:sysPrompt}, {role:"user", content:text}];
-            let url = provider === 'groq' ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
-            
-            const resp = await fetch(url, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ model, messages, temperature: 0.1 })
-            });
-
-            if(!resp.ok) throw new Error(await resp.text());
-            const json = await resp.json();
-            this.dom.editor.value = json.choices[0].message.content;
-            logger.log("AI: Cleaning Complete.");
-        } catch(e) {
-            logger.error(`AI Error: ${e.message}`);
-            alert("AI Error. Check logs.");
-        } finally {
-            this.dom.editor.disabled = false;
+    changePage(delta) {
+        if(!this.pdfDoc) return;
+        const newPage = this.pageNum + delta;
+        if(newPage >= 1 && newPage <= this.pdfDoc.numPages) {
+            this.pageNum = newPage;
+            this.renderPage();
         }
     }
 
-    // --- AUDIO GENERATION ---
-    async generateAudio() {
-        const text = this.dom.editor.value;
-        if(!text) return alert("No text to generate.");
+    async extractText() {
+        logger.log("OCR: Processing...");
+        const worker = await Tesseract.createWorker('eng');
+        const { data: { text } } = await worker.recognize(dom.canvas);
+        await worker.terminate();
+        dom.editor.value = text;
+        logger.log("OCR: Complete.");
+    }
+
+    // --- AI ---
+    updateAiModels() {
+        const p = document.getElementById('ai-provider').value;
+        const s = document.getElementById('ai-model');
+        s.innerHTML = '';
+        const opts = p === 'groq' 
+            ? [{id:'llama3-70b-8192', n:'Llama 3 (70B)'}, {id:'mixtral-8x7b-32768', n:'Mixtral'}]
+            : [{id:'gpt-4o', n:'GPT-4o'}, {id:'gpt-3.5-turbo', n:'GPT-3.5'}];
+        opts.forEach(o => {
+            const el = document.createElement('option');
+            el.value = o.id; el.innerText = o.n;
+            s.appendChild(el);
+        });
+    }
+
+    saveSettings() { localStorage.setItem('vibe_ai_key', document.getElementById('ai-key').value); }
+
+    async runAi() {
+        const key = document.getElementById('ai-key').value;
+        if(!key) return alert("API Key Required");
+        const text = dom.editor.value;
+        if(!text) return alert("No text");
         
-        logger.log("TTS: Generating Audio...");
+        logger.log("AI: Cleaning...");
+        dom.editor.disabled = true;
+        
         try {
-            const voice = document.getElementById('voice-select').value;
-            const audioData = await this.engine.generate(text, voice);
+            const provider = document.getElementById('ai-provider').value;
+            const model = document.getElementById('ai-model').value;
+            const sys = document.getElementById('ai-prompt').value;
             
-            // Encode MP3
+            const url = provider === 'groq' ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ model, messages: [{role:"system", content:sys}, {role:"user", content:text}], temperature: 0.1 })
+            });
+            
+            if(!resp.ok) throw new Error(await resp.text());
+            const json = await resp.json();
+            dom.editor.value = json.choices[0].message.content;
+            logger.log("AI: Done.");
+        } catch(e) {
+            logger.error(e);
+            alert("AI Error");
+        } finally {
+            dom.editor.disabled = false;
+        }
+    }
+
+    // --- GENERATE & PLAY ---
+    async generate() {
+        const text = dom.editor.value;
+        if(!text) return alert("No text");
+        
+        logger.log("TTS: Generating...");
+        try {
+            const voice = dom.voiceSel.value;
+            const audio = await this.engine.generate(text, voice);
+            
+            // Encode MP3 (Main Thread for simplicity in v7)
             const mp3encoder = new lamejs.Mp3Encoder(1, 24000, 128);
-            const samples = new Int16Array(audioData.length);
-            for(let i=0; i<audioData.length; i++) {
-                let s = Math.max(-1, Math.min(1, audioData[i]));
+            const samples = new Int16Array(audio.length);
+            for(let i=0; i<audio.length; i++) {
+                let s = Math.max(-1, Math.min(1, audio[i]));
                 samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
             }
-            
             const mp3Data = [];
             const blockSize = 1152;
             for(let i=0; i<samples.length; i+=blockSize) {
@@ -828,119 +735,95 @@ class App {
             if(end.length > 0) mp3Data.push(end);
             
             const blob = new Blob(mp3Data, {type:'audio/mp3'});
-            
-            // Add to Timeline
-            const item = {
-                text: text.substring(0, 30) + "...",
-                fullText: text,
-                blob: blob,
-                duration: audioData.length / 24000
-            };
+            const item = { text: text.substring(0,30)+"...", blob, duration: audio.length/24000 };
             
             await db.put('timeline', undefined, item);
-            this.loadTimelineFromDB();
-            logger.log("TTS: Done & Saved.");
-
+            this.loadTimeline();
+            logger.log("TTS: Saved to Timeline.");
+            
         } catch(e) {
-            logger.error(`TTS Error: ${e.message}`);
+            logger.error(e);
         }
     }
 
-    async loadTimelineFromDB() {
+    async loadTimeline() {
         this.state.timeline = await db.getAll('timeline');
-        const container = this.dom.timeline;
-        container.innerHTML = '';
+        dom.timeline.innerHTML = '';
         let total = 0;
-        
-        this.state.timeline.forEach((item, idx) => {
-            total += item.duration;
+        this.state.timeline.forEach((it, i) => {
+            total += it.duration;
             const div = document.createElement('div');
-            div.className = `timeline-item ${idx === this.state.currentIdx ? 'active' : ''}`;
-            div.onclick = () => { this.state.currentIdx = idx; this.loadTimelineFromDB(); };
-            div.innerHTML = `
-                <span class="t-idx">#${idx+1}</span>
-                <span style="flex:1; margin-left:10px; font-size:0.8rem;">${item.text}</span>
-                <span class="t-dur">${Math.round(item.duration)}s</span>
-            `;
-            container.appendChild(div);
+            div.className = `t-item ${i === this.state.idx ? 'active' : ''}`;
+            div.onclick = () => { this.state.idx = i; this.loadTimeline(); };
+            div.innerHTML = `<span>#${i+1} ${it.text}</span><span>${Math.round(it.duration)}s</span>`;
+            dom.timeline.appendChild(div);
         });
-        
-        document.getElementById('total-duration').innerText = 
-            `${Math.floor(total/60)}:${Math.floor(total%60).toString().padStart(2,'0')}`;
+        document.getElementById('total-time').innerText = `${Math.floor(total/60)}:${Math.floor(total%60).toString().padStart(2,'0')}`;
     }
 
-    // --- PLAYBACK ---
-    async togglePlayback() {
-        if(this.state.isPlaying) {
-            this.state.isPlaying = false;
-            this.dom.playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    async togglePlay() {
+        if(this.state.playing) {
+            this.state.playing = false;
+            dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
         } else {
-            this.state.isPlaying = true;
-            this.dom.playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-            this.playLoop();
+            this.state.playing = true;
+            dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            this.loop();
         }
     }
 
-    async playLoop() {
-        if(!this.state.isPlaying || this.state.currentIdx >= this.state.timeline.length) {
-            this.state.isPlaying = false;
-            this.dom.playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    async loop() {
+        if(!this.state.playing || this.state.idx >= this.state.timeline.length) {
+            this.state.playing = false;
+            dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
             return;
         }
-
-        const item = this.state.timeline[this.state.currentIdx];
-        this.loadTimelineFromDB(); // Update active UI
         
-        // Decode Blob to AudioBuffer for playback
-        const arrayBuf = await item.blob.arrayBuffer();
-        const audioBuf = await this.engine.ctx.decodeAudioData(arrayBuf);
+        const item = this.state.timeline[this.state.idx];
+        this.loadTimeline(); // Update UI
+        document.getElementById('status-msg').innerText = `Playing #${this.state.idx+1}`;
         
-        // Play using source node
+        const ab = await item.blob.arrayBuffer();
+        const audioBuf = await this.engine.ctx.decodeAudioData(ab);
+        
         const src = this.engine.ctx.createBufferSource();
         src.buffer = audioBuf;
-        src.connect(this.engine.analyser);
+        src.connect(this.engine.ctx.destination);
         src.start();
         
         src.onended = () => {
-            if(this.state.isPlaying) {
-                this.state.currentIdx++;
-                this.playLoop();
+            if(this.state.playing) {
+                this.state.idx++;
+                this.loop();
             }
         };
     }
 
-    prevChunk() { if(this.state.currentIdx > 0) { this.state.currentIdx--; this.loadTimelineFromDB(); } }
-    nextChunk() { if(this.state.currentIdx < this.state.timeline.length - 1) { this.state.currentIdx++; this.loadTimelineFromDB(); } }
+    prevChunk() { if(this.state.idx > 0) { this.state.idx--; this.loadTimeline(); } }
+    nextChunk() { if(this.state.idx < this.state.timeline.length-1) { this.state.idx++; this.loadTimeline(); } }
 
-    // --- EXPORT ---
-    async exportAudiobook() {
-        if(!this.state.timeline.length) return alert("Timeline is empty.");
-        logger.log("Export: Stitching MP3...");
-        
+    async exportMP3() {
+        if(!this.state.timeline.length) return alert("Empty");
         const blobs = this.state.timeline.map(i => i.blob);
-        const finalBlob = new Blob(blobs, {type:'audio/mp3'});
-        const buf = await finalBlob.arrayBuffer();
-        
-        const writer = new ID3Writer(buf);
-        writer.setFrame('TIT2', this.state.pdfName || "VibeReader Project")
-              .setFrame('TPE1', ['VibeReader AI'])
-              .setFrame('COMM', {
-                  description: 'VibeReaderData',
-                  text: JSON.stringify({
-                      timeline: this.state.timeline, // Note: Blobs don't stringify, logic simplified for demo
-                      pdfName: this.state.pdfName
-                  })
-              });
-        writer.addTag();
-        
-        const url = URL.createObjectURL(writer.getBlob());
+        const final = new Blob(blobs, {type:'audio/mp3'});
+        const url = URL.createObjectURL(final);
         const a = document.createElement('a');
         a.href = url; a.download = (this.state.pdfName || "audiobook") + ".mp3";
         a.click();
     }
+
+    toggleLogs(force) {
+        const el = document.getElementById('log-panel');
+        if(force) el.style.display = 'flex';
+        else el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    copyLogs() {
+        navigator.clipboard.writeText(logger.logs.join('\n'));
+        alert("Logs Copied");
+    }
 }
 
-// Init App
 const app = new App();
 </script>
 </body>
