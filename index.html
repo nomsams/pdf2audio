@@ -3,22 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v12.0 — Interstellar Edition</title>
+    <title>VibeReader v13.0 — Supernova Edition</title>
     
     <!-- ==========================================
          CORE DEPENDENCIES (Strict Versioning)
     ========================================== -->
-    <!-- PDF.js 3.11.174 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- Tesseract 5 -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- ONNX Runtime Web 1.18.0 (STABLE) -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
-    <!-- LameJS -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -27,9 +21,9 @@
             --bg-panel: #0e0e10;
             --bg-panel-light: #161618;
             --border: #27272a;
-            --primary: #8b5cf6; /* Violet */
+            --primary: #8b5cf6;
             --primary-glow: rgba(139, 92, 246, 0.3);
-            --accent: #06b6d4; /* Cyan */
+            --accent: #06b6d4;
             --text-main: #f4f4f5;
             --text-muted: #71717a;
             --success: #10b981;
@@ -176,7 +170,7 @@
 <body>
 
 <header>
-    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v12.0</div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v13.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
         <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
@@ -239,7 +233,7 @@
             
             <select id="ai-model" onchange="app.toggleReasoningUI()"></select>
             
-            <!-- Reasoning UI (Hidden unless 120b selected) -->
+            <!-- Reasoning UI -->
             <div id="reasoning-ui" style="display:none; margin-bottom:8px;">
                 <label style="font-size:0.7rem; color:var(--text-muted);">Reasoning Effort</label>
                 <select id="ai-reasoning">
@@ -331,15 +325,14 @@
 <script>
 /**
  * ============================================================================
- * VIBEREADER v12.0 - INTERSTELLAR CORE
+ * VIBEREADER v13.0 - SUPERNOVA CORE
  * ============================================================================
  */
 
 // 1. CRITICAL: HARDCODED WASM PATHS FOR 1.18.0
-// This solves the "undefined" init error by forcing ORT to look at the CDN.
 ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
-ort.env.wasm.numThreads = 1; // Prevent SharedArrayBuffer issues
-ort.env.wasm.proxy = false; // DISABLE PROXY WORKER (Fixes GitHub Pages CORS issues)
+ort.env.wasm.numThreads = 1; 
+ort.env.wasm.proxy = false; 
 
 const CONFIG = {
     models: {
@@ -347,11 +340,10 @@ const CONFIG = {
         fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
     },
     voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderInterstellar",
+    dbName: "VibeReaderSupernova",
     storeName: "assets"
 };
 
-// PDF Worker Setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // 2. DOM ELEMENTS
@@ -374,7 +366,7 @@ const dom = {
     visualizer: document.getElementById('visualizer')
 };
 
-// 3. LOGGER (Safe Serialization)
+// 3. LOGGER
 const logger = {
     logs: [],
     log: (msg) => logger.write(msg, 'l-info'),
@@ -480,11 +472,11 @@ class AudioEngine {
         dom.coreStatus.innerText = "BOOTING...";
         
         try {
-            // 0. PRE-FLIGHT CHECK: Verify WASM Access
+            // 0. PRE-FLIGHT
             logger.log("Engine: Pre-flight WASM check...");
             const wasmUrl = ort.env.wasm.wasmPaths + "ort-wasm-simd.wasm";
             const check = await fetch(wasmUrl, {method: 'HEAD'});
-            if(!check.ok) throw new Error(`WASM File Unreachable (${check.status}). Check CDN/Network.`);
+            if(!check.ok) throw new Error(`WASM Unreachable (${check.status})`);
             logger.log("Engine: WASM Reachable.");
 
             // 1. Voices
@@ -513,7 +505,6 @@ class AudioEngine {
             logger.log("Engine: Creating Inference Session...");
             const mBuffer = await mBlob.arrayBuffer();
             
-            // Explicitly create session
             this.session = await ort.InferenceSession.create(mBuffer, {
                 executionProviders: ['wasm'],
                 graphOptimizationLevel: 'basic',
@@ -536,14 +527,14 @@ class AudioEngine {
             dom.ledSys.className = "led err";
             dom.coreStatus.innerText = "ERROR";
             dom.coreStatus.style.color = "var(--danger)";
-            logger.error(e); // This will now dump the full object
+            logger.error(e);
             alert("Init Failed. See Logs.");
         }
     }
 
     async download(url) {
         const resp = await fetch(url);
-        if(!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const reader = resp.body.getReader();
         const total = +resp.headers.get('Content-Length');
         let loaded = 0;
@@ -570,10 +561,29 @@ class AudioEngine {
         });
     }
 
+    // --- SMART CHUNKING ---
+    chunkText(text, maxLen=400) {
+        // Split by sentence terminators, keeping them
+        const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+        const chunks = [];
+        let current = "";
+        
+        for (let s of sentences) {
+            if (current.length + s.length > maxLen) {
+                if (current.trim()) chunks.push(current.trim());
+                current = s;
+            } else {
+                current += s;
+            }
+        }
+        if (current.trim()) chunks.push(current.trim());
+        return chunks;
+    }
+
     async generate(text, voice) {
         if(!this.session) throw new Error("Session not ready");
         
-        // --- FIXED TOKENIZER (BigInt Crash Fix) ---
+        // 1. Tokenizer (BigInt Fix)
         const map = {
             ' ':0, '.':1, ',':2, '!':3, '?':4, "'":5, '-':6,
             'a':10, 'b':11, 'c':12, 'd':13, 'e':14, 'f':15, 'g':16, 'h':17, 'i':18, 'j':19,
@@ -581,19 +591,17 @@ class AudioEngine {
             'u':30, 'v':31, 'w':32, 'x':33, 'y':34, 'z':35
         };
         
-        // 1. Sanitize input (remove unknown chars)
         const cleanText = text.toLowerCase().replace(/[^a-z .,!?'\-]/g, '');
+        const tokens = cleanText.split('').map(c => map[c] !== undefined ? BigInt(map[c]) : 0n);
         
-        // 2. Map to BigInt explicitly
-        const tokens = cleanText.split('').map(c => {
-            const val = map[c];
-            return val !== undefined ? BigInt(val) : 0n;
-        });
-
-        if(tokens.length === 0) throw new Error("No valid tokens found");
+        if(tokens.length === 0) throw new Error("No valid tokens");
 
         const inputIds = new ort.Tensor('int64', new BigInt64Array(tokens), [1, tokens.length]);
-        const style = new ort.Tensor('float32', Float32Array.from(this.voices[voice]), [1, 256]);
+        
+        // 2. Dynamic Style Tensor (Fixes 256 vs 511 crash)
+        const styleData = Float32Array.from(this.voices[voice]);
+        const style = new ort.Tensor('float32', styleData, [1, styleData.length]);
+        
         const speed = new ort.Tensor('float32', [1.0], [1]);
 
         const res = await this.session.run({ 'input_ids': inputIds, 'style': style, 'speed': speed });
@@ -620,7 +628,7 @@ class App {
         this.pageNum = 1;
         this.state = { timeline: [], idx: 0, playing: false, pdfName: "Untitled" };
 
-        // Bind Events
+        // Bindings
         dom.pdfFile.onchange = (e) => this.loadPdf(e.target);
         dom.manualFile.onchange = (e) => this.manualLoad(e.target);
         dom.importFile.onchange = (e) => this.importProj(e.target);
@@ -675,14 +683,14 @@ class App {
         } else {
             alert("Select BOTH .onnx and .json");
         }
-        input.value = null; // Reset
+        input.value = null;
     }
 
     // --- PDF ---
     async loadPdf(input) {
         const file = input.files[0];
         if(!file) return;
-        input.value = null; // Reset
+        input.value = null;
         
         this.state.pdfName = file.name.replace('.pdf','');
         logger.log(`PDF: Loading ${file.name}...`);
@@ -775,17 +783,14 @@ class App {
             let url = provider === 'groq' ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
             if(useProxy) url = "https://corsproxy.io/?" + encodeURIComponent(url);
 
-            // Construct Payload
             const payload = {
                 model: model,
                 messages: [{role:"system", content:sys}, {role:"user", content:text}],
                 temperature: temp
             };
 
-            // Add Reasoning Effort if applicable
             if(model === 'openai/gpt-oss-120b') {
-                const effort = document.getElementById('ai-reasoning').value;
-                payload.reasoning_effort = effort; 
+                payload.reasoning_effort = document.getElementById('ai-reasoning').value;
             }
 
             const resp = await fetch(url, {
@@ -806,21 +811,42 @@ class App {
         }
     }
 
-    // --- GENERATE ---
+    // --- GENERATE (Chunked) ---
     async generate() {
         const text = dom.editor.value;
         if(!text) return alert("No text");
         
-        logger.log("TTS: Generating...");
+        logger.log("TTS: Starting Smart Generation...");
+        const voice = dom.voiceSel.value;
+        
+        // 1. Chunk Text
+        const chunks = this.engine.chunkText(text);
+        logger.log(`TTS: Split into ${chunks.length} chunks.`);
+        
         try {
-            const voice = dom.voiceSel.value;
-            const audio = await this.engine.generate(text, voice);
-            
-            // Encode MP3
+            const audioBuffers = [];
+            let totalLen = 0;
+
+            for (let i = 0; i < chunks.length; i++) {
+                document.getElementById('status-msg').innerText = `Generating ${i+1}/${chunks.length}...`;
+                const chunkAudio = await this.engine.generate(chunks[i], voice);
+                audioBuffers.push(chunkAudio);
+                totalLen += chunkAudio.length;
+            }
+
+            // 2. Stitch
+            const combined = new Float32Array(totalLen);
+            let offset = 0;
+            for (let buf of audioBuffers) {
+                combined.set(buf, offset);
+                offset += buf.length;
+            }
+
+            // 3. Encode MP3
             const mp3encoder = new lamejs.Mp3Encoder(1, 24000, 128);
-            const samples = new Int16Array(audio.length);
-            for(let i=0; i<audio.length; i++) {
-                let s = Math.max(-1, Math.min(1, audio[i]));
+            const samples = new Int16Array(combined.length);
+            for(let i=0; i<combined.length; i++) {
+                let s = Math.max(-1, Math.min(1, combined[i]));
                 samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
             }
             const mp3Data = [];
@@ -834,14 +860,16 @@ class App {
             if(end.length > 0) mp3Data.push(end);
             
             const blob = new Blob(mp3Data, {type:'audio/mp3'});
-            const item = { text: text.substring(0,30)+"...", blob, duration: audio.length/24000 };
+            const item = { text: text.substring(0,30)+"...", blob, duration: combined.length/24000 };
             
             await db.put('timeline', undefined, item);
             this.loadTimeline();
-            logger.log("TTS: Saved.");
+            document.getElementById('status-msg').innerText = "Ready";
+            logger.log("TTS: Complete & Saved.");
             
         } catch(e) {
             logger.error(e);
+            document.getElementById('status-msg').innerText = "Error";
         }
     }
 
