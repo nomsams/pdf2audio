@@ -3,40 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v11.0 — Unbreakable</title>
+    <title>VibeReader v12.0 — Interstellar Edition</title>
     
     <!-- ==========================================
-         CORE DEPENDENCIES (v1.18.0)
+         CORE DEPENDENCIES (Strict Versioning)
     ========================================== -->
+    <!-- PDF.js 3.11.174 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Tesseract 5 -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- ONNX Runtime Web 1.18.0 (STABLE) -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+    <!-- LameJS -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-dark: #050505;
-            --bg-panel: #0f0f10;
-            --bg-panel-light: #18181b;
+            --bg-dark: #030304;
+            --bg-panel: #0e0e10;
+            --bg-panel-light: #161618;
             --border: #27272a;
-            --primary: #8b5cf6;
-            --primary-glow: rgba(139, 92, 246, 0.2);
-            --accent: #10b981;
-            --text-main: #e4e4e7;
+            --primary: #8b5cf6; /* Violet */
+            --primary-glow: rgba(139, 92, 246, 0.3);
+            --accent: #06b6d4; /* Cyan */
+            --text-main: #f4f4f5;
             --text-muted: #71717a;
+            --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
+            --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+            --font-ui: 'Inter', system-ui, sans-serif;
         }
 
-        * { box-sizing: border-box; outline: none; scrollbar-width: thin; scrollbar-color: var(--border) var(--bg-panel); }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-panel); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
+        * { box-sizing: border-box; outline: none; }
         body {
             background: var(--bg-dark); color: var(--text-main);
             font-family: var(--font-ui); margin: 0; height: 100vh;
@@ -45,13 +48,13 @@
 
         /* --- HEADER --- */
         header {
-            height: 56px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+            height: 54px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
-            z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 50;
         }
         .brand {
             font-weight: 900; font-size: 1.2rem; letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #fff, var(--primary));
+            background: linear-gradient(to right, #fff, var(--primary));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             display: flex; align-items: center; gap: 10px;
         }
@@ -64,23 +67,21 @@
             font-size: 0.8rem; font-weight: 600; cursor: pointer;
             display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
         }
-        .btn:hover { background: #222; border-color: #555; transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
+        .btn:hover { background: #222; border-color: #444; }
+        .btn:active { transform: translateY(1px); }
         .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-        .btn-primary:hover { background: #4f46e5; box-shadow: 0 0 15px var(--primary-glow); }
-        .btn-danger { border-color: rgba(239,68,68,0.3); color: var(--danger); }
-        .btn-danger:hover { background: rgba(239,68,68,0.1); }
+        .btn-primary:hover { background: #7c3aed; box-shadow: 0 0 15px var(--primary-glow); }
         .btn-sm { padding: 4px 8px; font-size: 0.7rem; }
 
         /* --- LAYOUT --- */
-        .main-grid { display: grid; grid-template-columns: 340px 1fr 420px; flex: 1; overflow: hidden; }
+        .main-grid { display: grid; grid-template-columns: 340px 1fr 400px; flex: 1; overflow: hidden; }
         
         /* --- SIDEBAR --- */
         .sidebar { background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
         .panel-section { padding: 15px; border-bottom: 1px solid var(--border); }
         .panel-header {
             font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
-            color: var(--text-muted); font-weight: 800; margin-bottom: 12px;
+            color: var(--text-muted); font-weight: 800; margin-bottom: 10px;
             display: flex; justify-content: space-between; align-items: center;
         }
 
@@ -101,49 +102,47 @@
             text-align: center; color: var(--text-muted); font-size: 0.75rem;
             margin-top: 10px; transition: 0.2s; cursor: pointer;
         }
-        .drop-zone:hover { border-color: var(--primary); color: var(--text-main); background: rgba(99, 102, 241, 0.05); }
+        .drop-zone:hover { border-color: var(--primary); color: var(--text-main); background: rgba(139, 92, 246, 0.05); }
 
         /* --- INPUTS --- */
-        select, input[type="text"], input[type="password"], textarea {
-            width: 100%; background: #050505; border: 1px solid var(--border);
+        select, input[type="text"], input[type="password"], textarea, input[type="number"] {
+            width: 100%; background: #000; border: 1px solid var(--border);
             color: var(--text-main); padding: 8px; border-radius: 4px;
             font-family: var(--font-ui); font-size: 0.8rem; margin-bottom: 8px;
-            transition: border-color 0.2s;
         }
         select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
         /* --- TIMELINE --- */
-        #timeline-list { flex: 1; overflow-y: auto; padding: 10px; background: #020203; }
+        #timeline-list { flex: 1; overflow-y: auto; padding: 10px; background: #050505; }
         .t-item {
             background: var(--bg-panel-light); border: 1px solid var(--border);
-            border-radius: 4px; padding: 10px; margin-bottom: 6px; cursor: pointer;
+            border-radius: 4px; padding: 8px; margin-bottom: 6px; cursor: pointer;
             display: flex; justify-content: space-between; align-items: center;
-            transition: 0.2s;
         }
         .t-item:hover { border-color: #555; }
-        .t-item.active { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+        .t-item.active { border-color: var(--primary); background: rgba(139, 92, 246, 0.1); }
 
         /* --- PDF VIEWER --- */
         .pdf-area { background: #000; display: flex; flex-direction: column; position: relative; }
         .pdf-toolbar {
-            height: 44px; background: rgba(12,12,14,0.9); border-bottom: 1px solid var(--border);
+            height: 40px; background: rgba(14,14,16,0.9); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: center; gap: 15px;
-            position: absolute; top: 0; width: 100%; z-index: 10; backdrop-filter: blur(8px);
+            position: absolute; top: 0; width: 100%; z-index: 10; backdrop-filter: blur(5px);
         }
         .pdf-canvas-wrap { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 60px 20px 20px; }
-        canvas { max-width: 100%; box-shadow: 0 0 40px rgba(0,0,0,0.6); border-radius: 4px; }
+        canvas { max-width: 100%; box-shadow: 0 0 30px rgba(0,0,0,0.5); border-radius: 4px; }
 
         /* --- EDITOR --- */
         .editor-area { background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
         #text-editor {
-            flex: 1; background: #050505; border: none; padding: 20px;
+            flex: 1; background: #080808; border: none; padding: 20px;
             font-family: 'Georgia', serif; font-size: 1.1rem; line-height: 1.6;
             color: #d4d4d4; resize: none;
         }
 
         /* --- LOGS --- */
         #log-panel {
-            position: fixed; bottom: 80px; right: 20px; width: 600px; height: 300px;
+            position: fixed; bottom: 80px; right: 20px; width: 500px; height: 300px;
             background: rgba(5,5,5,0.95); border: 1px solid var(--border); border-radius: 8px;
             display: none; flex-direction: column; z-index: 200;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
@@ -159,16 +158,16 @@
         /* --- FOOTER --- */
         footer {
             height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border);
-            display: grid; grid-template-columns: 300px 1fr 300px; align-items: center;
+            display: grid; grid-template-columns: 250px 1fr 250px; align-items: center;
             padding: 0 20px; z-index: 100;
         }
         .play-btn {
-            width: 48px; height: 48px; border-radius: 50%; background: var(--text-main);
+            width: 44px; height: 44px; border-radius: 50%; background: var(--text-main);
             color: #000; border: none; font-size: 1.2rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center; transition: 0.2s;
         }
-        .play-btn:hover { transform: scale(1.1); background: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-        .play-btn:disabled { background: #333; color: #555; transform: none; box-shadow: none; }
+        .play-btn:hover { transform: scale(1.1); background: #fff; }
+        .play-btn:disabled { background: #333; color: #555; transform: none; }
         
         #visualizer { width: 100%; height: 40px; }
 
@@ -177,7 +176,7 @@
 <body>
 
 <header>
-    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v11.0</div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v12.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
         <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
@@ -214,14 +213,9 @@
                         <option value="q8">Kokoro 82M (Quantized - 80MB)</option>
                         <option value="fp16">Kokoro 82M (FP16 - 160MB)</option>
                     </select>
-                    <div style="display:flex; gap:5px;">
-                        <button id="btn-init" class="btn btn-primary" style="flex:1;" onclick="app.initEngine()">
-                            <i class="fa-solid fa-power-off"></i> Initialize
-                        </button>
-                        <button class="btn btn-danger" style="width:40px;" onclick="app.clearCache()" title="Force Re-Download">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
+                    <button id="btn-init" class="btn btn-primary" style="width:100%; justify-content:center;" onclick="app.initEngine()">
+                        <i class="fa-solid fa-power-off"></i> Initialize System
+                    </button>
                     <progress id="dl-bar" value="0" max="100" style="width:100%; height:4px; margin-top:5px; display:none;"></progress>
                 </div>
 
@@ -243,24 +237,26 @@
             </select>
             <input type="password" id="ai-key" placeholder="API Key (sk-...)" onchange="app.saveSettings()">
             
-            <div style="display:flex; gap:5px;">
-                <select id="ai-model" style="flex:1;"></select>
-                <input type="text" id="ai-custom-model" placeholder="Custom ID" style="flex:1; display:none;">
-                <button class="btn btn-sm" onclick="app.toggleCustomModel()" title="Toggle Custom Model ID">✎</button>
-            </div>
+            <select id="ai-model" onchange="app.toggleReasoningUI()"></select>
             
-            <div style="display:flex; gap:5px; margin-bottom:8px;">
-                <select id="ai-reasoning" style="flex:1;">
-                    <option value="low">Reasoning: Low</option>
-                    <option value="medium" selected>Reasoning: Medium</option>
-                    <option value="high">Reasoning: High</option>
+            <!-- Reasoning UI (Hidden unless 120b selected) -->
+            <div id="reasoning-ui" style="display:none; margin-bottom:8px;">
+                <label style="font-size:0.7rem; color:var(--text-muted);">Reasoning Effort</label>
+                <select id="ai-reasoning">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
                 </select>
-                <input type="number" id="ai-temp" value="0.1" step="0.1" min="0" max="2" style="width:60px;" title="Temperature">
             </div>
 
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:0.8rem;">
                 <input type="checkbox" id="cors-proxy" checked style="width:auto;">
                 <label for="cors-proxy">Use CORS Proxy</label>
+            </div>
+            
+            <div style="display:flex; gap:5px; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.7rem; color:var(--text-muted);">Temp:</span>
+                <input type="number" id="ai-temp" value="0.1" step="0.1" min="0" max="2" style="width:60px;">
             </div>
 
             <textarea id="ai-prompt" rows="2" placeholder="System Prompt...">Fix OCR errors. Output clean text only.</textarea>
@@ -335,7 +331,7 @@
 <script>
 /**
  * ============================================================================
- * VIBEREADER v11.0 - UNBREAKABLE CORE
+ * VIBEREADER v12.0 - INTERSTELLAR CORE
  * ============================================================================
  */
 
@@ -351,7 +347,7 @@ const CONFIG = {
         fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
     },
     voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderUnbreakable",
+    dbName: "VibeReaderInterstellar",
     storeName: "assets"
 };
 
@@ -378,7 +374,7 @@ const dom = {
     visualizer: document.getElementById('visualizer')
 };
 
-// 3. LOGGER (Deep Serialization)
+// 3. LOGGER (Safe Serialization)
 const logger = {
     logs: [],
     log: (msg) => logger.write(msg, 'l-info'),
@@ -386,10 +382,8 @@ const logger = {
     error: (msg) => {
         let text = msg;
         if (typeof msg === 'object') {
-            // Deep dump of error object
-            try { 
-                text = JSON.stringify(msg, Object.getOwnPropertyNames(msg), 2); 
-            } catch(e) { text = "Unknown Error Object"; }
+            try { text = JSON.stringify(msg, Object.getOwnPropertyNames(msg)); } 
+            catch(e) { text = "Unknown Error Object"; }
         }
         logger.write(text, 'l-err');
         app.toggleLogs(true);
@@ -626,7 +620,7 @@ class App {
         this.pageNum = 1;
         this.state = { timeline: [], idx: 0, playing: false, pdfName: "Untitled" };
 
-        // Bindings
+        // Bind Events
         dom.pdfFile.onchange = (e) => this.loadPdf(e.target);
         dom.manualFile.onchange = (e) => this.manualLoad(e.target);
         dom.importFile.onchange = (e) => this.importProj(e.target);
@@ -760,16 +754,6 @@ class App {
         else ui.style.display = 'none';
     }
 
-    toggleCustomModel() {
-        const sel = document.getElementById('ai-model');
-        const inp = document.getElementById('ai-custom-model');
-        if(sel.style.display === 'none') {
-            sel.style.display = 'block'; inp.style.display = 'none';
-        } else {
-            sel.style.display = 'none'; inp.style.display = 'block';
-        }
-    }
-
     saveSettings() { localStorage.setItem('vibe_ai_key', document.getElementById('ai-key').value); }
 
     async runAi() {
@@ -783,11 +767,7 @@ class App {
         
         try {
             const provider = document.getElementById('ai-provider').value;
-            let model = document.getElementById('ai-model').value;
-            if(document.getElementById('ai-custom-model').style.display !== 'none') {
-                model = document.getElementById('ai-custom-model').value;
-            }
-            
+            const model = document.getElementById('ai-model').value;
             const sys = document.getElementById('ai-prompt').value;
             const temp = parseFloat(document.getElementById('ai-temp').value);
             const useProxy = document.getElementById('cors-proxy').checked;
@@ -795,14 +775,17 @@ class App {
             let url = provider === 'groq' ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
             if(useProxy) url = "https://corsproxy.io/?" + encodeURIComponent(url);
 
+            // Construct Payload
             const payload = {
                 model: model,
                 messages: [{role:"system", content:sys}, {role:"user", content:text}],
                 temperature: temp
             };
 
+            // Add Reasoning Effort if applicable
             if(model === 'openai/gpt-oss-120b') {
-                payload.reasoning_effort = document.getElementById('ai-reasoning').value;
+                const effort = document.getElementById('ai-reasoning').value;
+                payload.reasoning_effort = effort; 
             }
 
             const resp = await fetch(url, {
