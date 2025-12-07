@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v13.0 — Supernova Edition</title>
+    <title>VibeReader v14.0 — Singularity Edition</title>
     
     <!-- ==========================================
          CORE DEPENDENCIES (Strict Versioning)
     ========================================== -->
+    <!-- PDF.js 3.11.174 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Tesseract 5 -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- ONNX Runtime Web 1.18.0 (STABLE) -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+    <!-- LameJS -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -21,9 +27,9 @@
             --bg-panel: #0e0e10;
             --bg-panel-light: #161618;
             --border: #27272a;
-            --primary: #8b5cf6;
+            --primary: #8b5cf6; /* Violet */
             --primary-glow: rgba(139, 92, 246, 0.3);
-            --accent: #06b6d4;
+            --accent: #06b6d4; /* Cyan */
             --text-main: #f4f4f5;
             --text-muted: #71717a;
             --success: #10b981;
@@ -170,7 +176,7 @@
 <body>
 
 <header>
-    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v13.0</div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v14.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
         <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
@@ -325,7 +331,7 @@
 <script>
 /**
  * ============================================================================
- * VIBEREADER v13.0 - SUPERNOVA CORE
+ * VIBEREADER v14.0 - SINGULARITY CORE
  * ============================================================================
  */
 
@@ -340,10 +346,11 @@ const CONFIG = {
         fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
     },
     voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderSupernova",
+    dbName: "VibeReaderSingularity",
     storeName: "assets"
 };
 
+// PDF Worker Setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // 2. DOM ELEMENTS
@@ -534,7 +541,7 @@ class AudioEngine {
 
     async download(url) {
         const resp = await fetch(url);
-        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if(!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
         const reader = resp.body.getReader();
         const total = +resp.headers.get('Content-Length');
         let loaded = 0;
@@ -563,11 +570,9 @@ class AudioEngine {
 
     // --- SMART CHUNKING ---
     chunkText(text, maxLen=400) {
-        // Split by sentence terminators, keeping them
         const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
         const chunks = [];
         let current = "";
-        
         for (let s of sentences) {
             if (current.length + s.length > maxLen) {
                 if (current.trim()) chunks.push(current.trim());
@@ -583,7 +588,7 @@ class AudioEngine {
     async generate(text, voice) {
         if(!this.session) throw new Error("Session not ready");
         
-        // 1. Tokenizer (BigInt Fix)
+        // 1. Tokenizer
         const map = {
             ' ':0, '.':1, ',':2, '!':3, '?':4, "'":5, '-':6,
             'a':10, 'b':11, 'c':12, 'd':13, 'e':14, 'f':15, 'g':16, 'h':17, 'i':18, 'j':19,
@@ -598,10 +603,23 @@ class AudioEngine {
 
         const inputIds = new ort.Tensor('int64', new BigInt64Array(tokens), [1, tokens.length]);
         
-        // 2. Dynamic Style Tensor (Fixes 256 vs 511 crash)
-        const styleData = Float32Array.from(this.voices[voice]);
-        const style = new ort.Tensor('float32', styleData, [1, styleData.length]);
+        // 2. FIX: Dynamic Style Tensor (Slicing to 256 if needed)
+        let styleData = this.voices[voice];
+        const targetSize = 256; // Model expects 256
         
+        if (styleData.length !== targetSize) {
+            logger.log(`Style vector mismatch. Got ${styleData.length}, adjusting to ${targetSize}`);
+            if (styleData.length > targetSize) {
+                styleData = styleData.slice(0, targetSize);
+            } else {
+                // Pad if too short (unlikely but safe)
+                const newArr = new Array(targetSize).fill(0);
+                for(let i=0; i<styleData.length; i++) newArr[i] = styleData[i];
+                styleData = newArr;
+            }
+        }
+
+        const style = new ort.Tensor('float32', Float32Array.from(styleData), [1, targetSize]);
         const speed = new ort.Tensor('float32', [1.0], [1]);
 
         const res = await this.session.run({ 'input_ids': inputIds, 'style': style, 'speed': speed });
@@ -811,7 +829,7 @@ class App {
         }
     }
 
-    // --- GENERATE (Chunked) ---
+    // --- GENERATE ---
     async generate() {
         const text = dom.editor.value;
         if(!text) return alert("No text");
@@ -907,7 +925,7 @@ class App {
         }
         
         const item = this.state.timeline[this.state.idx];
-        this.loadTimeline();
+        this.loadTimeline(); // Update UI
         document.getElementById('status-msg').innerText = `Playing #${this.state.idx+1}`;
         
         const ab = await item.blob.arrayBuffer();
