@@ -3,33 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v9.0 — Interstellar Edition</title>
+    <title>VibeReader v10.0 — Titanium Edition</title>
     
     <!-- ==========================================
-         CORE DEPENDENCIES (The "Tank" Stack)
+         CORE DEPENDENCIES (Pinned v1.16.3 for Stability)
     ========================================== -->
     <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- Tesseract (OCR) -->
+    <!-- Tesseract -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- ONNX Runtime Web 1.14.0 (Most Stable for Audio) -->
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.min.js"></script>
-    <!-- LameJS (MP3 Encoding) -->
+    <!-- ONNX Runtime Web 1.16.3 (The Sweet Spot) -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
+    <!-- LameJS -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-    <!-- ID3 Writer (Metadata) -->
+    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-dark: #020203;
-            --bg-panel: #0c0c0e;
-            --bg-panel-light: #151518;
+            --bg-dark: #050505;
+            --bg-panel: #0f0f10;
+            --bg-panel-light: #18181b;
             --border: #27272a;
-            --primary: #6366f1; /* Indigo */
-            --primary-glow: rgba(99, 102, 241, 0.2);
-            --accent: #10b981; /* Emerald */
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.2);
+            --accent: #10b981;
             --text-main: #e4e4e7;
             --text-muted: #71717a;
             --danger: #ef4444;
@@ -183,7 +183,7 @@
 <body>
 
 <header>
-    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v9.0</div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v10.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
         <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
@@ -331,20 +331,20 @@
         <button class="btn" onclick="app.nextChunk()"><i class="fa-solid fa-forward"></i></button>
     </div>
     <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);">
-        <span id="status-msg">Idle</span> • ORT 1.14.0
+        <span id="status-msg">Idle</span> • ORT 1.16.3
     </div>
 </footer>
 
 <script>
 /**
  * ============================================================================
- * VIBEREADER v9.0 - INTERSTELLAR CORE
+ * VIBEREADER v10.0 - TITANIUM CORE
  * ============================================================================
  */
 
-// 1. CRITICAL: HARDCODED WASM PATHS FOR 1.14.0
+// 1. CRITICAL: HARDCODED WASM PATHS FOR 1.16.3
 // This solves the "undefined" init error by forcing ORT to look at the CDN.
-ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/";
+ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/";
 ort.env.wasm.numThreads = 1; // Prevent SharedArrayBuffer issues
 
 const CONFIG = {
@@ -353,7 +353,7 @@ const CONFIG = {
         fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
     },
     voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderInterstellar",
+    dbName: "VibeReaderTitanium",
     storeName: "assets"
 };
 
@@ -468,7 +468,7 @@ class AudioEngine {
             requestAnimationFrame(draw);
             this.analyser.getByteFrequencyData(dataArray);
             
-            ctx.fillStyle = '#0c0c0e';
+            ctx.fillStyle = '#0f0f10';
             ctx.fillRect(0, 0, dom.visualizer.width, dom.visualizer.height);
             
             const barWidth = (dom.visualizer.width / bufferLength) * 2.5;
@@ -521,7 +521,8 @@ class AudioEngine {
             try {
                 this.session = await ort.InferenceSession.create(mBuffer, {
                     executionProviders: ['wasm'],
-                    graphOptimizationLevel: 'all'
+                    graphOptimizationLevel: 'basic', // Lower optimization to prevent crashes
+                    logSeverityLevel: 3
                 });
             } catch (onnxErr) {
                 throw new Error(`ONNX Create Failed: ${onnxErr.message}`);
@@ -580,15 +581,26 @@ class AudioEngine {
     async generate(text, voice) {
         if(!this.session) throw new Error("Session not ready");
         
-        // Tokenizer
+        // --- FIXED TOKENIZER (BigInt Crash Fix) ---
         const map = {
             ' ':0, '.':1, ',':2, '!':3, '?':4, "'":5, '-':6,
             'a':10, 'b':11, 'c':12, 'd':13, 'e':14, 'f':15, 'g':16, 'h':17, 'i':18, 'j':19,
             'k':20, 'l':21, 'm':22, 'n':23, 'o':24, 'p':25, 'q':26, 'r':27, 's':28, 't':29,
             'u':30, 'v':31, 'w':32, 'x':33, 'y':34, 'z':35
         };
-        const tokens = text.toLowerCase().split('').map(c => map[c] !== undefined ? map[c] : 0);
-        const inputIds = new ort.Tensor('int64', BigInt64Array.from(tokens), [1, tokens.length]);
+        
+        // 1. Sanitize input (remove unknown chars)
+        const cleanText = text.toLowerCase().replace(/[^a-z .,!?'\-]/g, '');
+        
+        // 2. Map to BigInt explicitly
+        const tokens = cleanText.split('').map(c => {
+            const val = map[c];
+            return val !== undefined ? BigInt(val) : 0n;
+        });
+
+        if(tokens.length === 0) throw new Error("No valid tokens found");
+
+        const inputIds = new ort.Tensor('int64', new BigInt64Array(tokens), [1, tokens.length]);
         const style = new ort.Tensor('float32', Float32Array.from(this.voices[voice]), [1, 256]);
         const speed = new ort.Tensor('float32', [1.0], [1]);
 
@@ -602,7 +614,7 @@ class AudioEngine {
         buf.getChannelData(0).set(data);
         const src = this.ctx.createBufferSource();
         src.buffer = buf;
-        src.connect(this.analyser);
+        src.connect(this.analyser); // Connect to visualizer
         src.start();
         return new Promise(r => src.onended = r);
     }
@@ -666,13 +678,12 @@ class App {
             logger.log("Manual: Saving files to DB...");
             await db.put(CONFIG.storeName, 'model.onnx', onnx);
             await db.put(CONFIG.storeName, 'voices.json', json);
-            logger.log("Manual: Saved. Initializing...");
+            logger.log("Manual: Saved. Booting...");
             this.engine.init();
         } else {
-            alert("Please select BOTH .onnx and .json files.");
+            alert("Select BOTH .onnx and .json files.");
         }
-        // Reset input
-        if(input.value) input.value = null;
+        input.value = null; // Reset
     }
 
     // --- PDF ---
@@ -716,12 +727,12 @@ class App {
     }
 
     async extractText() {
-        logger.log("OCR: Processing...");
+        logger.log("OCR: Scanning...");
         const worker = await Tesseract.createWorker('eng');
         const { data: { text } } = await worker.recognize(dom.canvas);
         await worker.terminate();
         dom.editor.value = text;
-        logger.log("OCR: Complete.");
+        logger.log("OCR: Done.");
     }
 
     // --- AI ---
@@ -784,8 +795,6 @@ class App {
             // Add Reasoning Effort if applicable
             if(model === 'openai/gpt-oss-120b') {
                 const effort = document.getElementById('ai-reasoning').value;
-                // Note: Groq API might pass this as a param or require it in prompt. 
-                // Standard O1 uses 'reasoning_effort'. We'll try top-level param.
                 payload.reasoning_effort = effort; 
             }
 
