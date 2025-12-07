@@ -3,22 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v14.0 — Singularity Edition</title>
+    <title>VibeReader v15.0 — Hyperdrive Edition</title>
     
     <!-- ==========================================
-         CORE DEPENDENCIES (Strict Versioning)
+         CORE DEPENDENCIES
     ========================================== -->
-    <!-- PDF.js 3.11.174 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- Tesseract 5 -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- ONNX Runtime Web 1.18.0 (STABLE) -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
-    <!-- LameJS -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -27,9 +21,9 @@
             --bg-panel: #0e0e10;
             --bg-panel-light: #161618;
             --border: #27272a;
-            --primary: #8b5cf6; /* Violet */
+            --primary: #8b5cf6;
             --primary-glow: rgba(139, 92, 246, 0.3);
-            --accent: #06b6d4; /* Cyan */
+            --accent: #06b6d4;
             --text-main: #f4f4f5;
             --text-muted: #71717a;
             --success: #10b981;
@@ -46,7 +40,7 @@
             display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* --- HEADER --- */
+        /* HEADER */
         header {
             height: 54px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
@@ -60,7 +54,7 @@
         }
         .toolbar { display: flex; gap: 10px; }
 
-        /* --- BUTTONS --- */
+        /* BUTTONS */
         .btn {
             background: var(--bg-panel-light); border: 1px solid var(--border);
             color: var(--text-main); padding: 8px 14px; border-radius: 6px;
@@ -73,10 +67,10 @@
         .btn-primary:hover { background: #7c3aed; box-shadow: 0 0 15px var(--primary-glow); }
         .btn-sm { padding: 4px 8px; font-size: 0.7rem; }
 
-        /* --- LAYOUT --- */
+        /* LAYOUT */
         .main-grid { display: grid; grid-template-columns: 340px 1fr 400px; flex: 1; overflow: hidden; }
         
-        /* --- SIDEBAR --- */
+        /* SIDEBAR */
         .sidebar { background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
         .panel-section { padding: 15px; border-bottom: 1px solid var(--border); }
         .panel-header {
@@ -85,7 +79,7 @@
             display: flex; justify-content: space-between; align-items: center;
         }
 
-        /* --- MODEL MANAGER --- */
+        /* MODEL MANAGER */
         .model-card {
             background: #000; border: 1px solid var(--border); border-radius: 8px;
             padding: 12px; font-size: 0.8rem;
@@ -104,7 +98,7 @@
         }
         .drop-zone:hover { border-color: var(--primary); color: var(--text-main); background: rgba(139, 92, 246, 0.05); }
 
-        /* --- INPUTS --- */
+        /* INPUTS */
         select, input[type="text"], input[type="password"], textarea, input[type="number"] {
             width: 100%; background: #000; border: 1px solid var(--border);
             color: var(--text-main); padding: 8px; border-radius: 4px;
@@ -112,7 +106,7 @@
         }
         select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
-        /* --- TIMELINE --- */
+        /* TIMELINE */
         #timeline-list { flex: 1; overflow-y: auto; padding: 10px; background: #050505; }
         .t-item {
             background: var(--bg-panel-light); border: 1px solid var(--border);
@@ -122,7 +116,7 @@
         .t-item:hover { border-color: #555; }
         .t-item.active { border-color: var(--primary); background: rgba(139, 92, 246, 0.1); }
 
-        /* --- PDF VIEWER --- */
+        /* PDF VIEWER */
         .pdf-area { background: #000; display: flex; flex-direction: column; position: relative; }
         .pdf-toolbar {
             height: 40px; background: rgba(14,14,16,0.9); border-bottom: 1px solid var(--border);
@@ -132,7 +126,7 @@
         .pdf-canvas-wrap { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 60px 20px 20px; }
         canvas { max-width: 100%; box-shadow: 0 0 30px rgba(0,0,0,0.5); border-radius: 4px; }
 
-        /* --- EDITOR --- */
+        /* EDITOR */
         .editor-area { background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
         #text-editor {
             flex: 1; background: #080808; border: none; padding: 20px;
@@ -140,7 +134,7 @@
             color: #d4d4d4; resize: none;
         }
 
-        /* --- LOGS --- */
+        /* LOGS */
         #log-panel {
             position: fixed; bottom: 80px; right: 20px; width: 500px; height: 300px;
             background: rgba(5,5,5,0.95); border: 1px solid var(--border); border-radius: 8px;
@@ -155,7 +149,7 @@
         .l-row { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; word-break: break-all; }
         .l-err { color: #ff5555; } .l-warn { color: #fbbf24; } .l-info { color: #10b981; }
 
-        /* --- FOOTER --- */
+        /* FOOTER */
         footer {
             height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border);
             display: grid; grid-template-columns: 250px 1fr 250px; align-items: center;
@@ -170,13 +164,12 @@
         .play-btn:disabled { background: #333; color: #555; transform: none; }
         
         #visualizer { width: 100%; height: 40px; }
-
     </style>
 </head>
 <body>
 
 <header>
-    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v14.0</div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v15.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
         <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
@@ -236,30 +229,8 @@
                 <option value="openai">OpenAI</option>
             </select>
             <input type="password" id="ai-key" placeholder="API Key (sk-...)" onchange="app.saveSettings()">
-            
-            <select id="ai-model" onchange="app.toggleReasoningUI()"></select>
-            
-            <!-- Reasoning UI -->
-            <div id="reasoning-ui" style="display:none; margin-bottom:8px;">
-                <label style="font-size:0.7rem; color:var(--text-muted);">Reasoning Effort</label>
-                <select id="ai-reasoning">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                </select>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:0.8rem;">
-                <input type="checkbox" id="cors-proxy" checked style="width:auto;">
-                <label for="cors-proxy">Use CORS Proxy</label>
-            </div>
-            
-            <div style="display:flex; gap:5px; align-items:center; margin-bottom:8px;">
-                <span style="font-size:0.7rem; color:var(--text-muted);">Temp:</span>
-                <input type="number" id="ai-temp" value="0.1" step="0.1" min="0" max="2" style="width:60px;">
-            </div>
-
-            <textarea id="ai-prompt" rows="2" placeholder="System Prompt...">Fix OCR errors. Output clean text only.</textarea>
+            <select id="ai-model"></select>
+            <textarea id="ai-prompt" rows="2" placeholder="System Prompt...">Fix OCR errors.</textarea>
         </div>
 
         <!-- TIMELINE -->
@@ -331,14 +302,14 @@
 <script>
 /**
  * ============================================================================
- * VIBEREADER v14.0 - SINGULARITY CORE
+ * VIBEREADER v15.0 - HYPERDRIVE CORE
  * ============================================================================
  */
 
-// 1. CRITICAL: HARDCODED WASM PATHS FOR 1.18.0
+// 1. CRITICAL CONFIGURATION
 ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
-ort.env.wasm.numThreads = 1; 
-ort.env.wasm.proxy = false; 
+ort.env.wasm.numThreads = 1;
+ort.env.wasm.proxy = false;
 
 const CONFIG = {
     models: {
@@ -346,11 +317,10 @@ const CONFIG = {
         fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
     },
     voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderSingularity",
+    dbName: "VibeReaderHyperdrive",
     storeName: "assets"
 };
 
-// PDF Worker Setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // 2. DOM ELEMENTS
@@ -439,7 +409,37 @@ const db = {
     }
 };
 
-// 5. AUDIO ENGINE
+// 5. MP3 WORKER (Off-Main-Thread Encoding)
+const mp3WorkerBlob = new Blob([`
+    importScripts('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js');
+    self.onmessage = function(e) {
+        const { audioData, sampleRate } = e.data;
+        try {
+            const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128);
+            const samples = new Int16Array(audioData.length);
+            for (let i = 0; i < audioData.length; i++) {
+                let s = Math.max(-1, Math.min(1, audioData[i]));
+                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            const mp3Data = [];
+            const blockSize = 1152;
+            for (let i = 0; i < samples.length; i += blockSize) {
+                const chunk = samples.subarray(i, i + blockSize);
+                const buf = mp3encoder.encodeBuffer(chunk);
+                if (buf.length > 0) mp3Data.push(buf);
+            }
+            const end = mp3encoder.flush();
+            if (end.length > 0) mp3Data.push(end);
+            
+            self.postMessage({ success: true, blob: new Blob(mp3Data, {type:'audio/mp3'}) });
+        } catch(err) {
+            self.postMessage({ success: false, error: err.message });
+        }
+    };
+`], { type: 'application/javascript' });
+const mp3WorkerUrl = URL.createObjectURL(mp3WorkerBlob);
+
+// 6. AUDIO ENGINE
 class AudioEngine {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -479,13 +479,6 @@ class AudioEngine {
         dom.coreStatus.innerText = "BOOTING...";
         
         try {
-            // 0. PRE-FLIGHT
-            logger.log("Engine: Pre-flight WASM check...");
-            const wasmUrl = ort.env.wasm.wasmPaths + "ort-wasm-simd.wasm";
-            const check = await fetch(wasmUrl, {method: 'HEAD'});
-            if(!check.ok) throw new Error(`WASM Unreachable (${check.status})`);
-            logger.log("Engine: WASM Reachable.");
-
             // 1. Voices
             let vBlob = await db.get(CONFIG.storeName, 'voices.json');
             if(!vBlob) {
@@ -494,8 +487,7 @@ class AudioEngine {
                 vBlob = await this.download(CONFIG.voices);
                 await db.put(CONFIG.storeName, 'voices.json', vBlob);
             }
-            try { this.voices = JSON.parse(await vBlob.text()); } 
-            catch(e) { throw new Error("Voices JSON Corrupt"); }
+            this.voices = JSON.parse(await vBlob.text());
 
             // 2. Model
             let mBlob = await db.get(CONFIG.storeName, 'model.onnx');
@@ -509,7 +501,7 @@ class AudioEngine {
             dom.dlBar.style.display = 'none';
 
             // 3. Compile
-            logger.log("Engine: Creating Inference Session...");
+            logger.log("Engine: Compiling WASM...");
             const mBuffer = await mBlob.arrayBuffer();
             
             this.session = await ort.InferenceSession.create(mBuffer, {
@@ -541,7 +533,7 @@ class AudioEngine {
 
     async download(url) {
         const resp = await fetch(url);
-        if(!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const reader = resp.body.getReader();
         const total = +resp.headers.get('Content-Length');
         let loaded = 0;
@@ -568,7 +560,6 @@ class AudioEngine {
         });
     }
 
-    // --- SMART CHUNKING ---
     chunkText(text, maxLen=400) {
         const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
         const chunks = [];
@@ -588,7 +579,6 @@ class AudioEngine {
     async generate(text, voice) {
         if(!this.session) throw new Error("Session not ready");
         
-        // 1. Tokenizer
         const map = {
             ' ':0, '.':1, ',':2, '!':3, '?':4, "'":5, '-':6,
             'a':10, 'b':11, 'c':12, 'd':13, 'e':14, 'f':15, 'g':16, 'h':17, 'i':18, 'j':19,
@@ -603,16 +593,12 @@ class AudioEngine {
 
         const inputIds = new ort.Tensor('int64', new BigInt64Array(tokens), [1, tokens.length]);
         
-        // 2. FIX: Dynamic Style Tensor (Slicing to 256 if needed)
+        // Dynamic Style Tensor (Fixes 256 vs 511 crash)
         let styleData = this.voices[voice];
-        const targetSize = 256; // Model expects 256
-        
+        const targetSize = 256; 
         if (styleData.length !== targetSize) {
-            logger.log(`Style vector mismatch. Got ${styleData.length}, adjusting to ${targetSize}`);
-            if (styleData.length > targetSize) {
-                styleData = styleData.slice(0, targetSize);
-            } else {
-                // Pad if too short (unlikely but safe)
+            if (styleData.length > targetSize) styleData = styleData.slice(0, targetSize);
+            else {
                 const newArr = new Array(targetSize).fill(0);
                 for(let i=0; i<styleData.length; i++) newArr[i] = styleData[i];
                 styleData = newArr;
@@ -638,7 +624,7 @@ class AudioEngine {
     }
 }
 
-// 6. APP CONTROLLER
+// 7. APP CONTROLLER
 class App {
     constructor() {
         this.engine = new AudioEngine();
@@ -674,13 +660,6 @@ class App {
         if(m) {
             dom.ledModel.className = "led on";
             dom.btnInit.innerHTML = '<i class="fa-solid fa-bolt"></i> Quick Boot';
-        }
-    }
-
-    async clearCache() {
-        if(confirm("Delete cached models?")) {
-            await db.clear(CONFIG.storeName);
-            location.reload();
         }
     }
 
@@ -829,15 +808,13 @@ class App {
         }
     }
 
-    // --- GENERATE ---
+    // --- GENERATE (ASYNC + WORKER) ---
     async generate() {
         const text = dom.editor.value;
         if(!text) return alert("No text");
         
         logger.log("TTS: Starting Smart Generation...");
         const voice = dom.voiceSel.value;
-        
-        // 1. Chunk Text
         const chunks = this.engine.chunkText(text);
         logger.log(`TTS: Split into ${chunks.length} chunks.`);
         
@@ -847,12 +824,16 @@ class App {
 
             for (let i = 0; i < chunks.length; i++) {
                 document.getElementById('status-msg').innerText = `Generating ${i+1}/${chunks.length}...`;
+                
+                // Yield to UI to prevent freezing
+                await new Promise(r => setTimeout(r, 10));
+                
                 const chunkAudio = await this.engine.generate(chunks[i], voice);
                 audioBuffers.push(chunkAudio);
                 totalLen += chunkAudio.length;
             }
 
-            // 2. Stitch
+            // Stitch
             const combined = new Float32Array(totalLen);
             let offset = 0;
             for (let buf of audioBuffers) {
@@ -860,30 +841,25 @@ class App {
                 offset += buf.length;
             }
 
-            // 3. Encode MP3
-            const mp3encoder = new lamejs.Mp3Encoder(1, 24000, 128);
-            const samples = new Int16Array(combined.length);
-            for(let i=0; i<combined.length; i++) {
-                let s = Math.max(-1, Math.min(1, combined[i]));
-                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            const mp3Data = [];
-            const blockSize = 1152;
-            for(let i=0; i<samples.length; i+=blockSize) {
-                const chunk = samples.subarray(i, i+blockSize);
-                const buf = mp3encoder.encodeBuffer(chunk);
-                if(buf.length > 0) mp3Data.push(buf);
-            }
-            const end = mp3encoder.flush();
-            if(end.length > 0) mp3Data.push(end);
+            // Encode via Worker
+            document.getElementById('status-msg').innerText = "Encoding MP3...";
+            const worker = new Worker(mp3WorkerUrl);
             
-            const blob = new Blob(mp3Data, {type:'audio/mp3'});
-            const item = { text: text.substring(0,30)+"...", blob, duration: combined.length/24000 };
+            worker.onmessage = async (e) => {
+                if(e.data.success) {
+                    const blob = e.data.blob;
+                    const item = { text: text.substring(0,30)+"...", blob, duration: combined.length/24000 };
+                    await db.put('timeline', undefined, item);
+                    this.loadTimeline();
+                    document.getElementById('status-msg').innerText = "Ready";
+                    logger.log("TTS: Complete & Saved.");
+                } else {
+                    logger.error("MP3 Worker Error: " + e.data.error);
+                }
+                worker.terminate();
+            };
             
-            await db.put('timeline', undefined, item);
-            this.loadTimeline();
-            document.getElementById('status-msg').innerText = "Ready";
-            logger.log("TTS: Complete & Saved.");
+            worker.postMessage({ audioData: combined, sampleRate: 24000 });
             
         } catch(e) {
             logger.error(e);
