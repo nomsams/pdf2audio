@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v3.1 (Robust)</title>
+    <title>VibeReader v4.0 (Groq Enhanced)</title>
     
     <!-- Core Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
@@ -77,16 +78,23 @@
         button.primary { background: var(--primary); color: white; border: none; }
         button.primary:hover { background: var(--primary-hover); }
         
+        input[type="text"], input[type="password"], select, textarea {
+            background: #27272a; border: 1px solid #3f3f46; color: white;
+            padding: 6px; border-radius: 4px; width: 100%; font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
         /* --- Layout --- */
         .workspace { display: flex; flex: 1; overflow: hidden; position: relative; }
 
         .sidebar {
-            width: 300px;
+            width: 320px;
             background: var(--panel);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             z-index: 5;
+            overflow-y: auto;
         }
 
         .main-view {
@@ -102,22 +110,27 @@
         .panel-title {
             font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
             color: var(--text-dim); font-weight: 700; margin-bottom: 10px;
-            display: flex; justify-content: space-between;
-        }
-
-        .status-indicator {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: #27272a;
-            margin-bottom: 10px;
             display: flex; justify-content: space-between; align-items: center;
         }
-        .status-indicator.error { background: rgba(239, 68, 68, 0.2); color: var(--error); }
-        .status-indicator.success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+
+        /* --- Status Widget --- */
+        .status-widget {
+            font-size: 0.75rem;
+            padding: 8px;
+            border-radius: 6px;
+            background: #27272a;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .status-row { display: flex; justify-content: space-between; align-items: center; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
+        .status-dot.green { background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .status-dot.red { background: var(--error); }
+        .status-dot.anim { animation: pulse 1s infinite; background: var(--warn); }
+        
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
         /* --- Timeline --- */
-        #timeline-list { flex: 1; overflow-y: auto; padding: 10px; }
+        #timeline-list { flex: 1; overflow-y: auto; padding: 10px; min-height: 100px; }
         .timeline-item {
             background: var(--bg); border: 1px solid var(--border);
             border-radius: 4px; padding: 8px; margin-bottom: 6px;
@@ -133,6 +146,7 @@
         .text-overlay {
             margin-top: 30px; max-width: 800px; line-height: 1.6;
             font-size: 1.1rem; color: var(--text-dim); font-family: serif;
+            white-space: pre-wrap;
         }
         .chunk { padding: 2px 4px; border-radius: 4px; transition: all 0.2s; }
         .chunk.active { background: rgba(139, 92, 246, 0.2); color: var(--text); box-shadow: 0 0 0 1px var(--primary); }
@@ -168,22 +182,14 @@
         .log-entry { margin-bottom: 2px; border-bottom: 1px solid #111; }
         .log-err { color: #ff5555; }
 
-        /* --- Spinner --- */
-        .spinner {
-            width: 16px; height: 16px; border: 2px solid #ffffff;
-            border-top: 2px solid transparent; border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
     </style>
 </head>
 <body>
 
     <header>
-        <div class="brand">VibeReader <span style="font-size:0.7rem; opacity:0.6">v3.1</span></div>
+        <div class="brand">VibeReader <span style="font-size:0.7rem; opacity:0.6">v4.0</span></div>
         <div class="toolbar">
-            <button onclick="document.getElementById('import-input').click()">📥 Import Project</button>
+            <button onclick="document.getElementById('import-input').click()">📥 Import</button>
             <input type="file" id="import-input" accept=".mp3" hidden onchange="app.importProject(this)">
             <button class="primary" onclick="document.getElementById('pdf-input').click()">📄 Open PDF</button>
             <input type="file" id="pdf-input" accept=".pdf" hidden onchange="app.loadPdf(this)">
@@ -193,45 +199,63 @@
     <div class="workspace">
         <!-- Sidebar -->
         <div class="sidebar">
-            <!-- Model Status Section -->
+            
+            <!-- 1. Neural Status (Non-blocking) -->
             <div class="panel-section">
-                <div class="panel-title">Neural Engine Status</div>
-                <div id="model-status" class="status-indicator">
-                    <span>Initializing...</span>
-                    <div class="spinner" id="model-spinner"></div>
+                <div class="panel-title">Neural Engine</div>
+                <div class="status-widget">
+                    <div class="status-row">
+                        <span id="status-text">Initializing...</span>
+                        <div id="status-dot" class="status-dot anim"></div>
+                    </div>
+                    <progress id="dl-progress" value="0" max="100" style="width:100%; height:4px; display:none;"></progress>
                 </div>
-                <div id="dl-details" style="font-size:0.7rem; color:var(--text-dim); margin-bottom:5px;"></div>
-                <progress id="dl-progress" value="0" max="100" style="width:100%; height:4px; display:none;"></progress>
                 
-                <!-- Manual Load Fallback -->
-                <div id="manual-load-ui" style="display:none; margin-top:10px; border-top:1px dashed var(--border); padding-top:10px;">
-                    <div style="font-size:0.7rem; color:var(--warn); margin-bottom:5px;">Network failed? Load manually:</div>
-                    <button onclick="document.getElementById('manual-files').click()" style="width:100%">📂 Select .onnx & .json</button>
+                <!-- Manual Load (Hidden by default) -->
+                <div id="manual-load-ui" style="display:none; margin-top:10px;">
+                    <button onclick="document.getElementById('manual-files').click()" style="width:100%; border-color:var(--error); color:var(--error);">
+                        📂 Manual Load (.onnx + .json)
+                    </button>
                     <input type="file" id="manual-files" multiple accept=".onnx,.json" hidden onchange="app.manualLoad(this)">
                 </div>
             </div>
 
+            <!-- 2. AI Cleaning (Groq) -->
             <div class="panel-section">
-                <div class="panel-title">Settings</div>
-                <select id="voice-select" style="width:100%; background:#222; color:#fff; border:1px solid #333; padding:5px; border-radius:4px;">
-                    <option>Loading voices...</option>
+                <div class="panel-title">
+                    <span>AI Text Cleaning</span>
+                    <span style="font-size:0.6rem; background:#333; padding:2px 4px; border-radius:3px;">OPTIONAL</span>
+                </div>
+                <input type="password" id="groq-key" placeholder="Groq API Key (gsk_...)" onchange="app.saveKey()">
+                <select id="groq-model">
+                    <option value="llama3-8b-8192">Llama 3 (8B) - Fast</option>
+                    <option value="llama3-70b-8192">Llama 3 (70B) - Smart</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7b</option>
                 </select>
+                <textarea id="groq-prompt" rows="3" placeholder="Custom Prompt Instructions...">This is one page from a ocr scan form a book your objective is to provide a cleaned version removing ocr artifacts.</textarea>
+                <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-top:5px;">
+                    <input type="checkbox" id="thinking-mode">
+                    <label for="thinking-mode">Thinking Mode (Slower, Better)</label>
+                </div>
+            </div>
+
+            <!-- 3. TTS Settings -->
+            <div class="panel-section">
+                <div class="panel-title">Voice Settings</div>
+                <select id="voice-select"><option>Loading voices...</option></select>
                 <div style="margin-top:10px; display:flex; align-items:center; gap:8px; font-size:0.8rem;">
                     <input type="checkbox" id="stream-mode" checked>
                     <label for="stream-mode">Auto-Stitch Timeline</label>
                 </div>
             </div>
 
+            <!-- 4. Timeline -->
             <div class="panel-section" style="flex:1; display:flex; flex-direction:column; border-bottom:none;">
                 <div class="panel-title">
                     <span>Timeline</span>
                     <span id="total-time">00:00</span>
                 </div>
-                <div id="timeline-list">
-                    <div style="text-align:center; color:var(--text-dim); padding:20px; font-size:0.8rem;">
-                        No audio generated yet.
-                    </div>
-                </div>
+                <div id="timeline-list"></div>
                 <button class="primary" style="width:100%; margin-top:10px;" onclick="app.exportProject()">💾 Export MP3</button>
             </div>
         </div>
@@ -241,7 +265,7 @@
             <div id="pdf-container">
                 <canvas id="pdf-canvas"></canvas>
                 <div id="text-display" class="text-overlay">
-                    Load a PDF to begin. The AI model is loading in the background.
+                    Load a PDF to begin. The AI model downloads in the background.
                 </div>
             </div>
         </div>
@@ -261,27 +285,24 @@
         <div style="font-size:0.8rem; color:var(--text-dim);"><span id="playback-status">Ready</span></div>
         <div style="display:flex; gap:15px;">
             <button onclick="app.prev()">⏮</button>
-            <button id="play-btn" class="play-btn primary" onclick="app.togglePlay()" disabled>
-                <div class="spinner"></div>
-            </button>
+            <button id="play-btn" class="play-btn primary" onclick="app.togglePlay()" disabled>▶</button>
             <button onclick="app.next()">⏭</button>
         </div>
-        <div style="font-size:0.75rem; color:var(--text-dim);">Kokoro 82M (Int8)</div>
+        <div style="font-size:0.75rem; color:var(--text-dim);">Kokoro 82M</div>
     </footer>
 
 <script>
 /**
  * ==========================================
- * VIBEREADER v3.1 CORE
+ * VIBEREADER v4.0 CORE
  * ==========================================
  */
 
-// --- CONFIGURATION ---
 const CONFIG = {
-    // Primary: Dropbox (Direct), Fallback: HuggingFace
-    modelUrl: "https://dl.dropboxusercontent.com/scl/fi/dro5xmkt2arvesxhj2a14/model_q8f16.onnx?rlkey=8v7d17jisunatozughonagimy&st=ls1gepem&dl=1",
+    // UPDATED: Your specific Dropbox link (converted to direct download)
+    modelUrl: "https://dl.dropboxusercontent.com/scl/fi/dro5xmkt2arvesxhj2a14/model_q8f16.onnx?rlkey=8v7d17jisunatozughonagimy&st=8jqup808&dl=1",
     voicesUrl: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderV3",
+    dbName: "VibeReaderV4",
     storeName: "assets"
 };
 
@@ -296,8 +317,6 @@ const log = (msg, type='info') => {
     el.appendChild(line);
     el.scrollTop = el.scrollHeight;
     console[type](msg);
-    
-    // Auto-expand on error
     if(type === 'error') document.getElementById('log-panel').classList.remove('minimized');
 };
 
@@ -368,6 +387,62 @@ const db = {
         return new Promise(r => tx.oncomplete = r);
     }
 };
+
+// --- GROQ API CLIENT ---
+class GroqClient {
+    constructor() {
+        this.apiKey = localStorage.getItem('groq_key') || '';
+        if(this.apiKey) document.getElementById('groq-key').value = this.apiKey;
+    }
+
+    saveKey(key) {
+        this.apiKey = key;
+        localStorage.setItem('groq_key', key);
+    }
+
+    async cleanText(rawText) {
+        if (!this.apiKey) return rawText; // Pass-through if no key
+
+        const model = document.getElementById('groq-model').value;
+        const userPrompt = document.getElementById('groq-prompt').value;
+        const thinking = document.getElementById('thinking-mode').checked;
+
+        log(`Sending to Groq (${model})...`);
+        
+        // Construct Prompt
+        let systemPrompt = "You are an expert OCR text cleaner. Output ONLY the cleaned text. Do not add conversational filler.";
+        if (thinking) systemPrompt += " Think step-by-step about potential OCR errors (e.g. 'rn' vs 'm', '1' vs 'l') before outputting the final text.";
+        
+        const messages = [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `${userPrompt}\n\nRAW TEXT:\n${rawText}` }
+        ];
+
+        try {
+            const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${this.apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    temperature: 0.1
+                })
+            });
+
+            if (!resp.ok) throw new Error(`Groq API Error: ${resp.status}`);
+            const data = await resp.json();
+            const cleaned = data.choices[0].message.content;
+            log("Groq cleaning complete.");
+            return cleaned;
+        } catch (e) {
+            log(`Groq Failed: ${e.message}. Using raw text.`, 'error');
+            return rawText;
+        }
+    }
+}
 
 // --- AUDIO ENGINE ---
 class AudioEngine {
@@ -466,9 +541,7 @@ class AudioEngine {
     }
 }
 
-/**
- * --- TIMELINE MANAGER ---
- */
+// --- TIMELINE MANAGER ---
 class TimelineManager {
     constructor() {
         this.worker = new Worker(mp3WorkerUrl);
@@ -540,13 +613,12 @@ class TimelineManager {
     }
 }
 
-/**
- * --- APP CONTROLLER ---
- */
+// --- APP CONTROLLER ---
 class App {
     constructor() {
         this.engine = new AudioEngine();
         this.timeline = new TimelineManager();
+        this.groq = new GroqClient();
         this.state = { chunks: [], currentChunk: 0, isPlaying: false, pdfName: "Untitled" };
         
         // Start Init immediately (Non-blocking)
@@ -554,38 +626,32 @@ class App {
     }
 
     async initEngine() {
-        const statusEl = document.getElementById('model-status');
-        const detailsEl = document.getElementById('dl-details');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
         const progressEl = document.getElementById('dl-progress');
         const manualUI = document.getElementById('manual-load-ui');
 
         try {
             progressEl.style.display = 'block';
             await this.engine.init((msg, pct) => {
-                detailsEl.innerText = msg;
+                statusText.innerText = msg;
                 progressEl.value = pct;
             });
             
             // Success
-            statusEl.innerHTML = `<span>Engine Ready</span><span>●</span>`;
-            statusEl.className = 'status-indicator success';
-            detailsEl.innerText = "Kokoro 82M Loaded";
+            statusText.innerText = "Engine Ready";
+            statusDot.className = "status-dot green";
             progressEl.style.display = 'none';
             manualUI.style.display = 'none';
             
-            // Enable Play
-            const playBtn = document.getElementById('play-btn');
-            playBtn.disabled = false;
-            playBtn.innerHTML = "▶";
-            
+            document.getElementById('play-btn').disabled = false;
             this.populateVoices();
             await this.timeline.loadFromDB();
 
         } catch (e) {
             // Failure
-            statusEl.innerHTML = `<span>Load Failed</span><span>⚠</span>`;
-            statusEl.className = 'status-indicator error';
-            detailsEl.innerText = "Network Error";
+            statusText.innerText = "Load Failed";
+            statusDot.className = "status-dot red";
             progressEl.style.display = 'none';
             manualUI.style.display = 'block'; // Show manual load
         }
@@ -593,25 +659,22 @@ class App {
 
     async manualLoad(input) {
         const files = Array.from(input.files);
-        log(`Manual load selected ${files.length} files.`);
+        log(`Manual load: ${files.length} files.`);
         
-        // Robust detection: Look for extensions, not exact names
+        // Robust detection: Look for extensions, ignore specific names
         const onnxFile = files.find(f => f.name.toLowerCase().endsWith('.onnx'));
         const jsonFile = files.find(f => f.name.toLowerCase().endsWith('.json'));
 
         if(onnxFile && jsonFile) {
-            log(`Found Model: ${onnxFile.name}, Voices: ${jsonFile.name}`);
+            log(`Found: ${onnxFile.name} & ${jsonFile.name}`);
             try {
                 await db.put(CONFIG.storeName, 'model.onnx', onnxFile);
                 await db.put(CONFIG.storeName, 'voices.json', jsonFile);
-                log("Files saved to DB. Retrying init...");
-                this.initEngine(); // Retry init without reload
-            } catch(e) {
-                log("DB Save Failed: " + e.message, 'error');
-            }
+                log("Saved to DB. Retrying...");
+                this.initEngine(); 
+            } catch(e) { log("DB Error: " + e.message, 'error'); }
         } else {
-            alert("Error: You must select BOTH a .onnx file and a .json file.");
-            log("Manual load failed: Missing files.", 'error');
+            alert("Select BOTH a .onnx file and a .json file.");
         }
     }
 
@@ -628,23 +691,37 @@ class App {
         });
     }
 
+    saveKey() {
+        this.groq.saveKey(document.getElementById('groq-key').value);
+    }
+
     async loadPdf(input) {
         const file = input.files[0];
         if(!file) return;
         this.state.pdfName = file.name.replace('.pdf', '');
         
+        log("Parsing PDF...");
         const buffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument(buffer).promise;
         const page = await pdf.getPage(1);
         
-        const vp = page.getViewport({scale: 1.5});
+        // Render Canvas for Tesseract
+        const vp = page.getViewport({scale: 2.0}); // Higher scale for better OCR
         const cvs = document.getElementById('pdf-canvas');
         cvs.width = vp.width; cvs.height = vp.height;
         await page.render({canvasContext: cvs.getContext('2d'), viewport: vp}).promise;
 
-        const content = await page.getTextContent();
-        const raw = content.items.map(i => i.str).join(' ');
-        this.state.chunks = raw.match(/[^.!?]+[.!?]+/g) || [raw];
+        // OCR
+        log("Running Tesseract OCR...");
+        const worker = await Tesseract.createWorker('eng');
+        const { data: { text } } = await worker.recognize(cvs);
+        await worker.terminate();
+        log("OCR Complete.");
+
+        // Groq Cleaning
+        const cleanedText = await this.groq.cleanText(text);
+        
+        this.state.chunks = cleanedText.match(/[^.!?]+[.!?]+/g) || [cleanedText];
         this.state.currentChunk = 0;
         
         this.renderText();
