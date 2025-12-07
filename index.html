@@ -3,22 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeReader v10.0 — Titanium Edition</title>
+    <title>VibeReader v11.0 — Unbreakable</title>
     
     <!-- ==========================================
-         CORE DEPENDENCIES (Pinned v1.16.3 for Stability)
+         CORE DEPENDENCIES (v1.18.0)
     ========================================== -->
-    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- Tesseract -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- ONNX Runtime Web 1.16.3 (The Sweet Spot) -->
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
-    <!-- LameJS -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-    <!-- ID3 Writer -->
     <script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.0.0/dist/browser-id3-writer.min.js"></script>
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -149,7 +143,7 @@
 
         /* --- LOGS --- */
         #log-panel {
-            position: fixed; bottom: 80px; right: 20px; width: 500px; height: 300px;
+            position: fixed; bottom: 80px; right: 20px; width: 600px; height: 300px;
             background: rgba(5,5,5,0.95); border: 1px solid var(--border); border-radius: 8px;
             display: none; flex-direction: column; z-index: 200;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
@@ -183,7 +177,7 @@
 <body>
 
 <header>
-    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v10.0</div>
+    <div class="brand"><i class="fa-solid fa-meteor"></i> VibeReader v11.0</div>
     <div class="toolbar">
         <button class="btn" onclick="app.toggleLogs()"><i class="fa-solid fa-terminal"></i> Logs</button>
         <button class="btn" onclick="dom.importFile.click()"><i class="fa-solid fa-upload"></i> Import</button>
@@ -249,16 +243,19 @@
             </select>
             <input type="password" id="ai-key" placeholder="API Key (sk-...)" onchange="app.saveSettings()">
             
-            <select id="ai-model" onchange="app.toggleReasoningUI()"></select>
+            <div style="display:flex; gap:5px;">
+                <select id="ai-model" style="flex:1;"></select>
+                <input type="text" id="ai-custom-model" placeholder="Custom ID" style="flex:1; display:none;">
+                <button class="btn btn-sm" onclick="app.toggleCustomModel()" title="Toggle Custom Model ID">✎</button>
+            </div>
             
-            <!-- Reasoning UI (Hidden unless 120b selected) -->
-            <div id="reasoning-ui" style="display:none; margin-bottom:8px;">
-                <label style="font-size:0.7rem; color:var(--text-muted);">Reasoning Effort</label>
-                <select id="ai-reasoning">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
+            <div style="display:flex; gap:5px; margin-bottom:8px;">
+                <select id="ai-reasoning" style="flex:1;">
+                    <option value="low">Reasoning: Low</option>
+                    <option value="medium" selected>Reasoning: Medium</option>
+                    <option value="high">Reasoning: High</option>
                 </select>
+                <input type="number" id="ai-temp" value="0.1" step="0.1" min="0" max="2" style="width:60px;" title="Temperature">
             </div>
 
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:0.8rem;">
@@ -331,21 +328,22 @@
         <button class="btn" onclick="app.nextChunk()"><i class="fa-solid fa-forward"></i></button>
     </div>
     <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);">
-        <span id="status-msg">Idle</span> • ORT 1.16.3
+        <span id="status-msg">Idle</span> • ORT 1.18.0
     </div>
 </footer>
 
 <script>
 /**
  * ============================================================================
- * VIBEREADER v10.0 - TITANIUM CORE
+ * VIBEREADER v11.0 - UNBREAKABLE CORE
  * ============================================================================
  */
 
-// 1. CRITICAL: HARDCODED WASM PATHS FOR 1.16.3
+// 1. CRITICAL: HARDCODED WASM PATHS FOR 1.18.0
 // This solves the "undefined" init error by forcing ORT to look at the CDN.
-ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/";
+ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
 ort.env.wasm.numThreads = 1; // Prevent SharedArrayBuffer issues
+ort.env.wasm.proxy = false; // DISABLE PROXY WORKER (Fixes GitHub Pages CORS issues)
 
 const CONFIG = {
     models: {
@@ -353,7 +351,7 @@ const CONFIG = {
         fp16: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
     },
     voices: "https://dl.dropboxusercontent.com/scl/fi/v3ignh8iizgbo0qq2an53/voices.json?rlkey=k84pml5vd2oslwac56gpp4fj2&st=he7vmy4v&dl=1",
-    dbName: "VibeReaderTitanium",
+    dbName: "VibeReaderUnbreakable",
     storeName: "assets"
 };
 
@@ -380,7 +378,7 @@ const dom = {
     visualizer: document.getElementById('visualizer')
 };
 
-// 3. LOGGER (Safe Serialization)
+// 3. LOGGER (Deep Serialization)
 const logger = {
     logs: [],
     log: (msg) => logger.write(msg, 'l-info'),
@@ -388,8 +386,10 @@ const logger = {
     error: (msg) => {
         let text = msg;
         if (typeof msg === 'object') {
-            try { text = JSON.stringify(msg, Object.getOwnPropertyNames(msg)); } 
-            catch(e) { text = "Unknown Error Object"; }
+            // Deep dump of error object
+            try { 
+                text = JSON.stringify(msg, Object.getOwnPropertyNames(msg), 2); 
+            } catch(e) { text = "Unknown Error Object"; }
         }
         logger.write(text, 'l-err');
         app.toggleLogs(true);
@@ -455,7 +455,6 @@ class AudioEngine {
         this.analyser.connect(this.ctx.destination);
         this.session = null;
         this.voices = null;
-        
         this.drawVisualizer();
     }
 
@@ -467,16 +466,12 @@ class AudioEngine {
         const draw = () => {
             requestAnimationFrame(draw);
             this.analyser.getByteFrequencyData(dataArray);
-            
             ctx.fillStyle = '#0f0f10';
             ctx.fillRect(0, 0, dom.visualizer.width, dom.visualizer.height);
-            
             const barWidth = (dom.visualizer.width / bufferLength) * 2.5;
-            let barHeight;
             let x = 0;
-            
             for(let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
+                const barHeight = dataArray[i] / 2;
                 ctx.fillStyle = `rgb(${barHeight + 100}, 102, 241)`;
                 ctx.fillRect(x, dom.visualizer.height - barHeight, barWidth, barHeight);
                 x += barWidth + 1;
@@ -486,66 +481,69 @@ class AudioEngine {
     }
 
     async init() {
-        logger.log("Engine: Starting Initialization Sequence...");
+        logger.log("Engine: Booting...");
         dom.ledSys.className = "led busy";
         dom.coreStatus.innerText = "BOOTING...";
         
         try {
-            // 1. Check/Download Voices
+            // 0. PRE-FLIGHT CHECK: Verify WASM Access
+            logger.log("Engine: Pre-flight WASM check...");
+            const wasmUrl = ort.env.wasm.wasmPaths + "ort-wasm-simd.wasm";
+            const check = await fetch(wasmUrl, {method: 'HEAD'});
+            if(!check.ok) throw new Error(`WASM File Unreachable (${check.status}). Check CDN/Network.`);
+            logger.log("Engine: WASM Reachable.");
+
+            // 1. Voices
             let vBlob = await db.get(CONFIG.storeName, 'voices.json');
             if(!vBlob) {
-                logger.log("Engine: Downloading Voices...");
+                logger.log("Download: Voices...");
                 dom.dlBar.style.display = 'block';
                 vBlob = await this.download(CONFIG.voices);
                 await db.put(CONFIG.storeName, 'voices.json', vBlob);
             }
-            this.voices = JSON.parse(await vBlob.text());
-            
-            // 2. Check/Download Model
+            try { this.voices = JSON.parse(await vBlob.text()); } 
+            catch(e) { throw new Error("Voices JSON Corrupt"); }
+
+            // 2. Model
             let mBlob = await db.get(CONFIG.storeName, 'model.onnx');
             if(!mBlob) {
                 const source = document.getElementById('model-source').value;
-                const url = CONFIG.models[source];
-                logger.log(`Engine: Downloading Model (${source})...`);
+                logger.log(`Download: Model (${source})...`);
                 dom.dlBar.style.display = 'block';
-                mBlob = await this.download(url);
+                mBlob = await this.download(CONFIG.models[source]);
                 await db.put(CONFIG.storeName, 'model.onnx', mBlob);
             }
             dom.dlBar.style.display = 'none';
 
-            // 3. Compile ONNX
-            logger.log("Engine: Compiling WASM Graph...");
+            // 3. Compile
+            logger.log("Engine: Creating Inference Session...");
             const mBuffer = await mBlob.arrayBuffer();
             
-            // CRITICAL: Catch specific ONNX errors
-            try {
-                this.session = await ort.InferenceSession.create(mBuffer, {
-                    executionProviders: ['wasm'],
-                    graphOptimizationLevel: 'basic', // Lower optimization to prevent crashes
-                    logSeverityLevel: 3
-                });
-            } catch (onnxErr) {
-                throw new Error(`ONNX Create Failed: ${onnxErr.message}`);
-            }
+            // Explicitly create session
+            this.session = await ort.InferenceSession.create(mBuffer, {
+                executionProviders: ['wasm'],
+                graphOptimizationLevel: 'basic',
+                logSeverityLevel: 3
+            });
 
             // Success
             dom.ledSys.className = "led on";
             dom.ledModel.className = "led on";
             dom.coreStatus.innerText = "ONLINE";
             dom.coreStatus.style.color = "var(--success)";
-            dom.btnInit.style.display = 'none'; // Hide init button
+            dom.btnInit.style.display = 'none';
             dom.btnPlay.disabled = false;
             
             this.populateVoices();
-            logger.log("Engine: System Fully Operational.");
+            logger.log("Engine: Ready.");
             return true;
 
         } catch(e) {
             dom.ledSys.className = "led err";
             dom.coreStatus.innerText = "ERROR";
             dom.coreStatus.style.color = "var(--danger)";
-            logger.error(e);
-            alert("Initialization Failed. Check Logs.");
+            logger.error(e); // This will now dump the full object
+            alert("Init Failed. See Logs.");
         }
     }
 
@@ -614,7 +612,7 @@ class AudioEngine {
         buf.getChannelData(0).set(data);
         const src = this.ctx.createBufferSource();
         src.buffer = buf;
-        src.connect(this.analyser); // Connect to visualizer
+        src.connect(this.analyser);
         src.start();
         return new Promise(r => src.onended = r);
     }
@@ -628,7 +626,7 @@ class App {
         this.pageNum = 1;
         this.state = { timeline: [], idx: 0, playing: false, pdfName: "Untitled" };
 
-        // Bind Events
+        // Bindings
         dom.pdfFile.onchange = (e) => this.loadPdf(e.target);
         dom.manualFile.onchange = (e) => this.manualLoad(e.target);
         dom.importFile.onchange = (e) => this.importProj(e.target);
@@ -646,7 +644,7 @@ class App {
         if(savedKey) document.getElementById('ai-key').value = savedKey;
         this.updateAiModels();
         
-        // Check DB for existing models to update UI
+        // Auto-check DB
         this.checkDbStatus();
         this.loadTimeline();
     }
@@ -660,7 +658,7 @@ class App {
     }
 
     async clearCache() {
-        if(confirm("Delete cached models? You will need to re-download them.")) {
+        if(confirm("Delete cached models?")) {
             await db.clear(CONFIG.storeName);
             location.reload();
         }
@@ -681,7 +679,7 @@ class App {
             logger.log("Manual: Saved. Booting...");
             this.engine.init();
         } else {
-            alert("Select BOTH .onnx and .json files.");
+            alert("Select BOTH .onnx and .json");
         }
         input.value = null; // Reset
     }
@@ -690,9 +688,7 @@ class App {
     async loadPdf(input) {
         const file = input.files[0];
         if(!file) return;
-        
-        // Reset input so same file can be selected again
-        input.value = null;
+        input.value = null; // Reset
         
         this.state.pdfName = file.name.replace('.pdf','');
         logger.log(`PDF: Loading ${file.name}...`);
@@ -760,9 +756,18 @@ class App {
     toggleReasoningUI() {
         const model = document.getElementById('ai-model').value;
         const ui = document.getElementById('reasoning-ui');
-        // Show reasoning UI only for 120b model
         if(model === 'openai/gpt-oss-120b') ui.style.display = 'block';
         else ui.style.display = 'none';
+    }
+
+    toggleCustomModel() {
+        const sel = document.getElementById('ai-model');
+        const inp = document.getElementById('ai-custom-model');
+        if(sel.style.display === 'none') {
+            sel.style.display = 'block'; inp.style.display = 'none';
+        } else {
+            sel.style.display = 'none'; inp.style.display = 'block';
+        }
     }
 
     saveSettings() { localStorage.setItem('vibe_ai_key', document.getElementById('ai-key').value); }
@@ -778,24 +783,26 @@ class App {
         
         try {
             const provider = document.getElementById('ai-provider').value;
-            const model = document.getElementById('ai-model').value;
+            let model = document.getElementById('ai-model').value;
+            if(document.getElementById('ai-custom-model').style.display !== 'none') {
+                model = document.getElementById('ai-custom-model').value;
+            }
+            
             const sys = document.getElementById('ai-prompt').value;
+            const temp = parseFloat(document.getElementById('ai-temp').value);
             const useProxy = document.getElementById('cors-proxy').checked;
             
             let url = provider === 'groq' ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
             if(useProxy) url = "https://corsproxy.io/?" + encodeURIComponent(url);
 
-            // Construct Payload
             const payload = {
                 model: model,
                 messages: [{role:"system", content:sys}, {role:"user", content:text}],
-                temperature: 0.1
+                temperature: temp
             };
 
-            // Add Reasoning Effort if applicable
             if(model === 'openai/gpt-oss-120b') {
-                const effort = document.getElementById('ai-reasoning').value;
-                payload.reasoning_effort = effort; 
+                payload.reasoning_effort = document.getElementById('ai-reasoning').value;
             }
 
             const resp = await fetch(url, {
@@ -816,7 +823,7 @@ class App {
         }
     }
 
-    // --- GENERATE & PLAY ---
+    // --- GENERATE ---
     async generate() {
         const text = dom.editor.value;
         if(!text) return alert("No text");
@@ -826,7 +833,7 @@ class App {
             const voice = dom.voiceSel.value;
             const audio = await this.engine.generate(text, voice);
             
-            // Encode MP3 (Main Thread for simplicity in v7)
+            // Encode MP3
             const mp3encoder = new lamejs.Mp3Encoder(1, 24000, 128);
             const samples = new Int16Array(audio.length);
             for(let i=0; i<audio.length; i++) {
@@ -848,7 +855,7 @@ class App {
             
             await db.put('timeline', undefined, item);
             this.loadTimeline();
-            logger.log("TTS: Saved to Timeline.");
+            logger.log("TTS: Saved.");
             
         } catch(e) {
             logger.error(e);
@@ -889,7 +896,7 @@ class App {
         }
         
         const item = this.state.timeline[this.state.idx];
-        this.loadTimeline(); // Update UI
+        this.loadTimeline();
         document.getElementById('status-msg').innerText = `Playing #${this.state.idx+1}`;
         
         const ab = await item.blob.arrayBuffer();
@@ -897,7 +904,7 @@ class App {
         
         const src = this.engine.ctx.createBufferSource();
         src.buffer = audioBuf;
-        src.connect(this.engine.analyser); // Connect to visualizer
+        src.connect(this.engine.analyser);
         src.start();
         
         src.onended = () => {
